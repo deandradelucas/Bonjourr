@@ -1,70 +1,59 @@
 try {
-	const port = parseInt(Deno.args[0])
-	httpServer(port)
+    const port = parseInt(Deno.args[0])
+    httpServer(port)
 } catch (_e) {
-	// console.log(_e)
+    // console.log(_e)
 }
 
-export function httpServer(port: number, baseUrl = 'release/online') {
-	const contentTypeList: Record<string, string> = {
-		'.webmanifest': 'application/manifest+json',
-		'.js': 'text/javascript',
-		'.svg': 'image/svg+xml',
-		'.ico': 'image/x-icon',
-		'.mp3': 'audio/mpeg',
-		'.html': 'text/html',
-		'.png': 'image/png',
-		'.css': 'text/css',
-	}
+export function httpServer(port: number, baseUrl = 'release/online'): void {
+    const contentTypeList: Record<string, string> = {
+        '.webmanifest': 'application/manifest+json',
+        '.js': 'text/javascript',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.mp3': 'audio/mpeg',
+        '.html': 'text/html',
+        '.png': 'image/png',
+        '.css': 'text/css',
+    }
 
-	// Request handler
-	// actual meat of the server
+    // Request handler
+    // actual meat of the server
 
-	const serverHandler: Deno.ServeHandler<Deno.NetAddr> = async (request) => {
-		// Find resource
+    const serverHandler = async (request: Request): Promise<Response> => {
+        const url = new URL(request.url)
+        const filePath = baseUrl + (url.pathname === '/' ? '/index.html' : url.pathname)
 
-		const url = new URL(request.url)
-		const filePath = baseUrl + (url.pathname === '/' ? '/index.html' : url.pathname)
-		const fileExists = await Deno.stat(filePath)
+        const headers: HeadersInit = { 'cache-control': 'no-cache' }
+        const fileExt = filePath.split('.').at(-1) ?? ''
+        const contentType = contentTypeList[fileExt]
 
-		if (!fileExists) {
-			return new Response('Not Found', {
-				status: 404,
-			})
-		}
+        if (contentType) {
+            headers['content-type'] = contentType
+        }
 
-		// Find content type
+        // Read data
 
-		const headers: HeadersInit = { 'cache-control': 'no-cache' }
-		const fileExt = filePath.split('.').at(-1) ?? ''
-		const contentType = contentTypeList[fileExt]
+        const data = await Deno.readFile(filePath)
 
-		if (contentType) {
-			headers.contentType = contentType
-		}
+        return new Response(data, {
+            headers: headers,
+            status: 200,
+        })
+    }
 
-		// Read data
+    // Starts server
+    // catches errors
 
-		const data = await Deno.readFile(filePath)
-
-		return new Response(data, {
-			headers: headers,
-			status: 200,
-		})
-	}
-
-	// Starts server
-	// catches errors
-
-	Deno.serve({ port }, async (request, info) => {
-		try {
-			return await serverHandler(request, info)
-		} catch (err) {
-			if (err instanceof Deno.errors.NotFound) {
-				return new Response('Not Found', { status: 404 })
-			} else {
-				return new Response('Internal Server Error', { status: 500 })
-			}
-		}
-	})
+    Deno.serve({ port }, async (request) => {
+        try {
+            return await serverHandler(request)
+        } catch (err) {
+            if (err instanceof Deno.errors.NotFound) {
+                return new Response('Not Found', { status: 404 })
+            } else {
+                return new Response('Internal Server Error', { status: 500 })
+            }
+        }
+    })
 }

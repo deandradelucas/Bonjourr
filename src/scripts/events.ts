@@ -1,151 +1,188 @@
+import type { Advanced } from '../types/sync.ts'
+
+import { isTypingTarget } from './features/links/helpers.ts'
+
 let isMousingDownOnInput = false
 
-export function userActions() {
-	document.body.addEventListener('mousedown', detectTargetAsInputs)
-	document.getElementById('b_editmove')?.addEventListener('click', closeSettingsOnMoveOpen)
+export function userActions(advanced: Advanced): void {
+    document.body.addEventListener('mousedown', detectTargetAsInputs)
+    document.getElementById('b_editmove')?.addEventListener('click', closeSettingsOnMoveOpen)
 
-	document.addEventListener('click', clickUserActions)
-	document.addEventListener('keydown', keyboardUserActions)
-	document.addEventListener('keyup', keyboardUserActions)
+    document.addEventListener('click', clickUserActions)
+
+    document.addEventListener('keydown', (event) => {
+        keyboardUserActions(advanced, event)
+    })
+
+    document.addEventListener('keyup', (event) => {
+        keyboardUserActions(advanced, event)
+    })
 }
 
 // Main functions
 
-function keyboardUserActions(event: KeyboardEvent) {
-	const domsuggestions = document.getElementById('sb-suggestions')
+function keyboardUserActions(advanced: Advanced, event: KeyboardEvent): void {
+    const { altKey, ctrlKey, metaKey, code, type } = event
 
-	if (event.code === 'Escape') {
-		if (domsuggestions?.classList.contains('shown')) {
-			domsuggestions?.classList.remove('shown')
-			return
-		}
+    const domsuggestions = document.getElementById('sb-suggestions')
 
-		const open = isOpen()
-		const keyup = event.type === 'keyup'
+    if (code === 'Escape') {
+        if (domsuggestions?.classList.contains('shown')) {
+            domsuggestions?.classList.remove('shown')
+            return
+        }
 
-		if (open.contextmenu) {
-			document.dispatchEvent(new Event('close-edit'))
-		} //
-		else if (open.settings && keyup) {
-			document.dispatchEvent(new CustomEvent('toggle-settings'))
-		} //
-		else if (open.selectall) {
-			document.dispatchEvent(new Event('remove-select-all'))
-		} //
-		else if (open.folder) {
-			document.dispatchEvent(new Event('close-folder'))
-		} //
-		else if (keyup) {
-			// condition to avoid conflicts with esc key on supporters modal
-			// likely to be improved
-			if (document.documentElement.dataset.supportersModal === undefined) {
-				document.dispatchEvent(new CustomEvent('toggle-settings'))
-			}
-		}
+        const open = isOpen()
+        const keyup = event.type === 'keyup'
 
-		return
-	}
+        if (open.contextmenu) {
+            document.dispatchEvent(new Event('close-edit'))
+        } //
+        else if (advanced.escKey && open.settings && keyup) {
+            document.dispatchEvent(new CustomEvent('toggle-settings'))
+        } //
+        else if (open.selectall) {
+            document.dispatchEvent(new Event('remove-select-all'))
+        } //
+        else if (open.folder) {
+            document.dispatchEvent(new Event('close-folder'))
+        } //
+        else if (advanced.escKey && keyup) {
+            // condition to avoid conflicts with esc key on supporters modal
+            // likely to be improved
+            if (document.documentElement.dataset.supportersModal === undefined) {
+                document.dispatchEvent(new CustomEvent('toggle-settings'))
+            }
+        }
 
-	if (event.code === 'Tab') {
-		document.body.classList.toggle('tabbing', true)
-		return
-	}
+        return
+    }
+
+    if (code === 'Tab') {
+        document.body.classList.toggle('tabbing', true)
+        return
+    }
+
+    // alt + N keybind to add new link
+    if (type === 'keydown' && altKey && !ctrlKey && !metaKey && code === 'KeyN') {
+        if (isTypingTarget(event.target)) return
+
+        const linkList = document.querySelector('#linkblocks:not(.hidden) .link-list')
+        if (!linkList) return
+
+        const rect = linkList.getBoundingClientRect()
+
+        // dodgy implementation but way more efficient than adding event more complexity to populateDialogWithEditLink(), that thing will be rewritten in the future to make it bearable
+        linkList.dispatchEvent(
+            new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: rect.right,
+                clientY: rect.top + 15,
+            }),
+        )
+    }
 }
 
-function clickUserActions(event: MouseEvent) {
-	if (isMousingDownOnInput) {
-		return
-	}
+function clickUserActions(event: MouseEvent): void {
+    if (isMousingDownOnInput) {
+        return
+    }
 
-	const open = isOpen()
-	const composedPath = (event.composedPath() as Element[]) ?? [document.body]
-	const path = composedPath.filter((node) => node?.className?.includes)
-	const pathIds = path.map((el) => (el as HTMLElement).id)
+    const open = isOpen()
+    const composedPath = (event.composedPath() as Element[]) ?? [document.body]
+    const path = composedPath.filter((node) => node?.className?.includes)
+    const pathIds = path.map((el) => (el as HTMLElement).id)
 
-	const on = {
-		body: (path[0] as HTMLElement).tagName === 'BODY',
-		link: path.some((el) => el.classList.contains('link')),
-		linkfolder: path.some((el) => el.className.includes('folder')),
-		addgroup: path.some((el) => el.className.includes('add-group')),
-		folder: path.some((el) => el.className.includes('in-folder')),
-		button: path.some((el) => el.className.includes('param-btn')),
-		localfiles: path.some((el) => el.id === 'local_options'),
-		interface: pathIds.includes('interface'),
-		contextmenu: pathIds.includes('contextmenu'),
-		settings: path.some((el) => el.id === 'settings'),
-		showsettings: path.some((el) => el.id === 'show-settings'),
-		interactable: path.some((el) =>
-			el instanceof HTMLElement && (
-				el.matches(
-					'a[href], button, input, select, textarea, label, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]',
-				)
-			)
-		),
-	}
+    const on = {
+        body: (path[0] as HTMLElement).tagName === 'BODY',
+        link: path.some((el) => el.classList.contains('link')),
+        linkfolder: path.some((el) => el.className.includes('folder')),
+        addgroup: path.some((el) => el.className.includes('add-group')),
+        folder: path.some((el) => el.className.includes('in-folder')),
+        button: path.some((el) => el.className.includes('param-btn')),
+        localfiles: path.some((el) => el.id === 'local_options'),
+        interface: pathIds.includes('interface'),
+        contextmenu: pathIds.includes('contextmenu'),
+        settings: path.some((el) => el.id === 'settings'),
+        showsettings: path.some((el) => el.id === 'show-settings'),
+        interactable: path.some((el) =>
+            el instanceof HTMLElement && (
+                el.matches(
+                    'a[href], button, input, select, textarea, label, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]',
+                )
+            )
+        ),
+    }
 
-	if (document.body.classList.contains('tabbing')) {
-		document.body?.classList.toggle('tabbing', false)
-	}
+    if (document.body.classList.contains('tabbing')) {
+        document.body?.classList.toggle('tabbing', false)
+    }
 
-	if (document.querySelectorAll('.thumbnail.selected') && !on.localfiles && !on.button) {
-		for (const node of document.querySelectorAll('.thumbnail.selected')) {
-			node.classList.remove('selected')
-		}
-	}
+    if (document.querySelectorAll('.thumbnail.selected') && !on.localfiles && !on.button) {
+        for (const node of document.querySelectorAll('.thumbnail.selected')) {
+            node.classList.remove('selected')
+        }
+    }
 
-	if (on.showsettings) {
-		document.dispatchEvent(new CustomEvent('toggle-settings'))
-	}
+    if (on.showsettings) {
+        document.dispatchEvent(new CustomEvent('toggle-settings'))
+    }
 
-	if (open.contextmenu && !on.contextmenu) {
-		// if (on.addgroup && document.querySelector('.link-title.add-group.selected')) {
-		if (on.addgroup) {
-			return
-		}
+    if (open.contextmenu && !on.contextmenu) {
+        // if (on.addgroup && document.querySelector('.link-title.add-group.selected')) {
+        if (on.addgroup) {
+            return
+        }
 
-		document.dispatchEvent(new Event('close-edit'))
-		return
-	}
+        document.dispatchEvent(new Event('close-edit'))
+        return
+    }
 
-	if ((on.body || on.interface) === false) {
-		return
-	}
+    if ((on.body || on.interface) === false) {
+        return
+    }
 
-	if (open.settings && !on.interactable) {
-		document.dispatchEvent(new CustomEvent('toggle-settings'))
-	} //
-	else if (open.selectall && !on.link) {
-		document.dispatchEvent(new Event('remove-select-all'))
-	} //
-	else if (open.folder && !on.folder && !on.linkfolder) {
-		document.dispatchEvent(new Event('close-folder'))
-	}
+    if (open.settings && !on.interactable) {
+        document.dispatchEvent(new CustomEvent('toggle-settings'))
+    } //
+    else if (open.selectall && !on.link) {
+        document.dispatchEvent(new Event('remove-select-all'))
+    } //
+    else if (open.folder && !on.folder && !on.linkfolder) {
+        document.dispatchEvent(new Event('close-folder'))
+    }
 }
 
 // Handlers
 
-function isOpen() {
-	return {
-		settings: !!document.getElementById('settings')?.classList.contains('shown'),
-		folder: !!document.querySelector('.in-folder'),
-		selectall: document.getElementById('linkblocks')?.classList.contains('select-all'),
-		contextmenu: document.querySelector<HTMLDialogElement>('#contextmenu')?.open,
-	}
+function isOpen(): {
+    settings: boolean
+    folder: boolean
+    selectall: boolean | undefined
+    contextmenu: boolean | undefined
+} {
+    return {
+        settings: !!document.getElementById('settings')?.classList.contains('shown'),
+        folder: !!document.querySelector('.in-folder'),
+        selectall: document.getElementById('linkblocks')?.classList.contains('select-all'),
+        contextmenu: document.querySelector<HTMLDialogElement>('#contextmenu')?.open,
+    }
 }
 
-function detectTargetAsInputs(event: Event) {
-	const path = event.composedPath() as Element[]
-	const tagName = path[0]?.tagName ?? ''
-	isMousingDownOnInput = ['TEXTAREA', 'INPUT'].includes(tagName)
+function detectTargetAsInputs(event: Event): void {
+    const path = event.composedPath() as Element[]
+    const tagName = path[0]?.tagName ?? ''
+    isMousingDownOnInput = ['TEXTAREA', 'INPUT'].includes(tagName)
 }
 
-function closeSettingsOnMoveOpen() {
-	setTimeout(() => {
-		const elementmover = document.getElementById('element-mover')
-		const moverHasOpened = elementmover?.classList.contains('hidden') === false
+function closeSettingsOnMoveOpen(): void {
+    setTimeout(() => {
+        const elementmover = document.getElementById('element-mover')
+        const moverHasOpened = elementmover?.classList.contains('hidden') === false
 
-		if (moverHasOpened) {
-			document.dispatchEvent(new CustomEvent('toggle-settings'))
-		}
-	}, 20)
+        if (moverHasOpened) {
+            document.dispatchEvent(new CustomEvent('toggle-settings'))
+        }
+    }, 20)
 }
