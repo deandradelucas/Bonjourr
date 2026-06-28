@@ -111,6 +111,30 @@ export function initOverlayActions(overlay: HTMLDivElement, id: WidgetName): voi
     })
 }
 
+export function displayToolbar(state: boolean): void {
+    const toolbar = document.querySelector<HTMLElement>('#move-toolbar')
+
+    if (!state && toolbar) {
+        toolbar.remove()
+        return
+    }
+    if (state && toolbar) {
+        return
+    }
+
+    const templateToolbar = getHTMLTemplate<HTMLElement>('move-toolbar-template', '#move-toolbar')
+    const movePreview = templateToolbar.querySelector<HTMLButtonElement>('#b_move-preview')
+
+    movePreview?.addEventListener('pointerdown', () => {
+        dominterface?.classList.add('move-preview')
+    })
+    movePreview?.addEventListener('pointerup', () => {
+        dominterface?.classList.remove('move-preview')
+    })
+
+    document.body.appendChild(templateToolbar)
+}
+
 export function addOverlay(id: WidgetName): void {
     const overlay = getHTMLTemplate<HTMLDivElement>('move-overlay-template', '.move-overlay')
     overlay.id = `move-overlay-${id}`

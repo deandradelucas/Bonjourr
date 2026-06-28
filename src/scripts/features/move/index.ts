@@ -1,4 +1,12 @@
-import { addOverlay, removeOverlay, removeSelection, setAlign, setAllAligns, setGridAreas } from './dom.ts'
+import {
+    addOverlay,
+    displayToolbar,
+    removeOverlay,
+    removeSelection,
+    setAlign,
+    setAllAligns,
+    setGridAreas,
+} from './dom.ts'
 import { addGridWidget, getWidgetsStorage, gridParse, isDomHealthy } from './helpers.ts'
 import { SYNC_DEFAULT } from '../../defaults.ts'
 import { toggleWidget } from './widgets.ts'
@@ -142,17 +150,20 @@ function toggleMoveStatus(data: Sync, force?: boolean): void {
     const bEditmove = document.getElementById('b_editmove') as HTMLButtonElement
     const isEditing = dominterface?.classList.contains('move-edit')
     const hasOverlay = document.querySelector('.move-overlay') === null
-
     const state = force ?? !isEditing
 
     if (!state) {
         bEditmove.textContent = tradThis('Open')
         dominterface?.classList.remove('move-edit')
+        displayToolbar(false)
         removeOverlay()
-    } //
-    else if (hasOverlay) {
+    }
+
+    if (state && hasOverlay) {
         bEditmove.textContent = tradThis('Close')
         dominterface?.classList.add('move-edit')
+        displayToolbar(true)
+
         for (const id of getWidgetsStorage(data)) {
             addOverlay(id)
         }
