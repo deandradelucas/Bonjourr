@@ -1,4 +1,4 @@
-import { gridFind, gridFindObject, MOVE_WIDGETS } from './helpers.ts'
+import { gridFind, gridFindObject, MOVE_WIDGETS, rowOfDots, trimGridEdges } from './helpers.ts'
 import { setGridAreas } from './dom.ts'
 import { storage } from '../../storage.ts'
 
@@ -23,7 +23,7 @@ export function gridGrow(move: SimpleMove, id: WidgetName, direction: Direction)
     addGridEdgesForGrow(move, direction, widget, id)
     expandWidget(move, id, widget, direction)
     fixGridCollisions(move, sizes, id)
-    trimGridEdges(move)
+    trimGridEdges(move.grid)
     setGridAreas(move.grid)
 
     storage.sync.set({ move })
@@ -39,7 +39,7 @@ function addGridEdgesForGrow(move: SimpleMove, dir: Direction, widget: WidgetInG
     const isTop = isWidgetAtEdge(grid, widget, 'up')
 
     if (dir === 'up' && isTop) {
-        move.grid.unshift(rowOfDots(move))
+        move.grid.unshift(rowOfDots(move.grid))
         // Update all widget positions after adding row at top
         for (const widgetId of MOVE_WIDGETS) {
             const w = gridFindObject(move.grid, widgetId)
@@ -63,7 +63,7 @@ function addGridEdgesForGrow(move: SimpleMove, dir: Direction, widget: WidgetInG
     }
 
     if (dir === 'down' && isBottom) {
-        move.grid.push(rowOfDots(move))
+        move.grid.push(rowOfDots(move.grid))
     }
 
     if (dir === 'right' && isRight) {
@@ -137,7 +137,7 @@ function pushWidget(move: SimpleMove, id: WidgetName, dir: Direction): void {
     const isAtEdge = isWidgetAtEdge(grid, widget, dir)
     if (isAtEdge) {
         if (dir === 'down') {
-            move.grid.push(rowOfDots(move))
+            move.grid.push(rowOfDots(move.grid))
         }
         if (dir === 'right') {
             for (const row of move.grid) {
@@ -145,7 +145,7 @@ function pushWidget(move: SimpleMove, id: WidgetName, dir: Direction): void {
             }
         }
         if (dir === 'up') {
-            move.grid.unshift(rowOfDots(move))
+            move.grid.unshift(rowOfDots(move.grid))
             pushDistance = 0 // Widget stays in place, grid expanded above
         }
         if (dir === 'left') {
@@ -198,34 +198,6 @@ function fixGridCollisions(move: SimpleMove, _sizes: WidgetSizes, growingId: Wid
 
         if (isLayoutStable) {
             break
-        }
-    }
-}
-
-/** Step 5: Trim empty edges from the grid */
-function trimGridEdges(move: SimpleMove): void {
-    const multipleRows = move.grid.length > 1
-    const multipleCols = move.grid[0].length > 1
-
-    const emptyTop = isRowEmpty(move.grid, 0)
-    const emptyBottom = isRowEmpty(move.grid, move.grid.length - 1)
-    const emptyLeft = isColumnEmpty(move.grid, 0)
-    const emptyRight = isColumnEmpty(move.grid, move.grid[0].length - 1)
-
-    if (multipleRows && emptyTop) {
-        move.grid.shift()
-    }
-    if (multipleRows && emptyBottom) {
-        move.grid.pop()
-    }
-    if (multipleCols && emptyLeft) {
-        for (const r of move.grid) {
-            r.shift()
-        }
-    }
-    if (multipleCols && emptyRight) {
-        for (const r of move.grid) {
-            r.pop()
         }
     }
 }
@@ -283,18 +255,3 @@ function isRectangle(grid: Grid, id: string): boolean {
     return positions.length === expectedCells
 }
 
-function isRowEmpty(grid: Grid, index: number): boolean {
-    if (grid[index] === undefined) {
-        return false
-    }
-
-    return grid[index].every((cell) => cell === '.')
-}
-
-function isColumnEmpty(grid: Grid, index: number): boolean {
-    return grid.every((row) => row[index] === '.')
-}
-
-function rowOfDots(move: SimpleMove): ('.')[] {
-    return new Array(move.grid[0].length).fill('.')
-}

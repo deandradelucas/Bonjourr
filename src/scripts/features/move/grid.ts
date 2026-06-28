@@ -1,4 +1,4 @@
-import { gridFind, gridFindObject, MOVE_WIDGETS } from './helpers.ts'
+import { gridFind, gridFindObject, MOVE_WIDGETS, rowOfDots, trimGridEdges } from './helpers.ts'
 import { setGridAreas } from './dom.ts'
 import { storage } from '../../storage.ts'
 
@@ -23,7 +23,7 @@ export function gridMove(move: SimpleMove, id: WidgetName, direction: Direction)
     addGridEdges(move, direction, widget)
     optimisticSwap(move, id, widget, direction)
     fixGridCollisions(move, sizes, id)
-    trimGridEdges(move)
+    trimGridEdges(move.grid)
     setGridAreas(move.grid)
 
     storage.sync.set({ move })
@@ -39,7 +39,7 @@ function addGridEdges(move: SimpleMove, dir: Direction, widget: WidgetInGrid): v
     const isTop = isWidgetAtEdge(grid, widget, 'up')
 
     if (dir === 'up' && isTop) {
-        move.grid.unshift(rowOfDots(move))
+        move.grid.unshift(rowOfDots(move.grid))
 
         for (const position of widget.positions) {
             position.row++
@@ -56,7 +56,7 @@ function addGridEdges(move: SimpleMove, dir: Direction, widget: WidgetInGrid): v
     }
 
     if (dir === 'down' && isBottom) {
-        move.grid.push(rowOfDots(move))
+        move.grid.push(rowOfDots(move.grid))
     }
 
     if (dir === 'right' && isRight) {
@@ -140,7 +140,7 @@ function pushWidgetDown(move: SimpleMove, sizes: WidgetSizes, pushedId: WidgetNa
         const neededRows = Math.max(0, bottomOverflow)
 
         for (let i = 0; i < neededRows; i++) {
-            move.grid.push(rowOfDots(move))
+            move.grid.push(rowOfDots(move.grid))
         }
 
         let collisionWithLocked = false
@@ -177,35 +177,10 @@ function pushWidgetDown(move: SimpleMove, sizes: WidgetSizes, pushedId: WidgetNa
     }
 }
 
-/** Step 4 */
-function trimGridEdges(move: SimpleMove): void {
-    const multipleRows = move.grid.length > 1
-    const multipleCols = move.grid[0].length > 1
-
-    const emptyTop = isRowEmpty(move.grid, 0)
-    const emptyBottom = isRowEmpty(move.grid, move.grid.length - 1)
-    const emptyLeft = isColumnEmpty(move.grid, 0)
-    const emptyRight = isColumnEmpty(move.grid, move.grid[0].length - 1)
-
-    if (multipleRows && emptyTop) {
-        move.grid.shift()
-    }
-    if (multipleRows && emptyBottom) {
-        move.grid.pop()
-    }
-    if (multipleCols && emptyLeft) {
-        move.grid.forEach((r) => (r.shift()))
-    }
-    if (multipleCols && emptyRight) {
-        move.grid.forEach((r) => (r.pop()))
-    }
-}
-
 /**
  * helpers
  */
 
-/** */
 function toSizeMap(move: SimpleMove): WidgetSizes {
     const sizes = new Map<WidgetName, WidgetSize>()
 
@@ -268,18 +243,3 @@ function findOffendingRow(grid: Grid, id: string): number | undefined {
     }
 }
 
-function isRowEmpty(grid: Grid, index: number): boolean {
-    if (grid[index] === undefined) {
-        return false
-    }
-
-    return grid[index].every((cell) => cell === '.')
-}
-
-function isColumnEmpty(grid: Grid, index: number): boolean {
-    return grid.every((row) => row[index] === '.')
-}
-
-function rowOfDots(move: SimpleMove): ('.')[] {
-    return new Array(move.grid[0].length).fill('.')
-}

@@ -1,5 +1,5 @@
-import { elements, gridStringify } from './helpers.ts'
 import { moveElements, updateMoveElement } from './index.ts'
+import { elements, gridStringify } from './helpers.ts'
 import { getHTMLTemplate } from '../../shared/dom.ts'
 import { onclickdown } from 'clickdown/mod'
 
@@ -108,6 +108,26 @@ export function initOverlayActions(overlay: HTMLDivElement, id: WidgetName): voi
     })
     onclickdown(moveGrowTop, () => {
         moveElements(undefined, { id, grow: 'up' })
+    })
+
+    // Grid shrink
+
+    const moveShrinkBottom = overlay.querySelector<HTMLElement>('#move-shrink-bottom')
+    const moveShrinkRight = overlay.querySelector<HTMLElement>('#move-shrink-right')
+    const moveShrinkLeft = overlay.querySelector<HTMLElement>('#move-shrink-left')
+    const moveShrinkTop = overlay.querySelector<HTMLElement>('#move-shrink-top')
+
+    onclickdown(moveShrinkBottom, () => {
+        moveElements(undefined, { id, shrink: 'down' })
+    })
+    onclickdown(moveShrinkRight, () => {
+        moveElements(undefined, { id, shrink: 'right' })
+    })
+    onclickdown(moveShrinkLeft, () => {
+        moveElements(undefined, { id, shrink: 'left' })
+    })
+    onclickdown(moveShrinkTop, () => {
+        moveElements(undefined, { id, shrink: 'up' })
     })
 }
 

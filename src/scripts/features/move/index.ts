@@ -10,6 +10,7 @@ import {
 import { addGridWidget, getWidgetsStorage, gridParse, isDomHealthy } from './helpers.ts'
 import { SYNC_DEFAULT } from '../../defaults.ts'
 import { toggleWidget } from './widgets.ts'
+import { gridShrink } from './shrink.ts'
 import { gridMove } from './grid.ts'
 import { gridGrow } from './grow.ts'
 import { tradThis } from '../../utils/translations.ts'
@@ -24,6 +25,7 @@ interface UpdateMove {
     id?: string
     widget?: [WidgetName, boolean]
     grow?: Direction
+    shrink?: Direction
     reset?: true
     toggle?: boolean
     text?: string
@@ -90,6 +92,9 @@ export async function updateMoveElement(event: UpdateMove): Promise<void> {
         }
         if (event.grow) {
             gridGrow(data.move, event.id, event.grow)
+        }
+        if (event.shrink) {
+            gridShrink(data.move, event.id, event.shrink)
         }
         if (event.horizontal !== undefined) {
             alignChange(data.move, event.id, { horizontal: event.horizontal })

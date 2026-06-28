@@ -56,8 +56,6 @@ export function isDomHealthy(): boolean {
         return false
     }
 
-    console.log(getComputedStyle(dominterface).gridTemplateAreas)
-
     return getComputedStyle(dominterface).gridTemplateAreas !== 'none'
 }
 
@@ -319,6 +317,28 @@ export function addGridWidget(grid: string, id: WidgetName): string {
     rows = rows.map((row) => `'${row}'`)
 
     return rows.join(' ')
+}
+
+export function trimGridEdges(grid: Grid): void {
+    const multipleRows = grid.length > 1
+    const multipleCols = grid[0].length > 1
+
+    if (multipleRows && isRowEmpty(grid, 0)) grid.shift()
+    if (multipleRows && isRowEmpty(grid, grid.length - 1)) grid.pop()
+    if (multipleCols && isColumnEmpty(grid, 0)) { for (const r of grid) r.shift() }
+    if (multipleCols && isColumnEmpty(grid, grid[0].length - 1)) { for (const r of grid) r.pop() }
+}
+
+export function isRowEmpty(grid: Grid, index: number): boolean {
+    return grid[index]?.every((cell) => cell === '.') ?? false
+}
+
+export function isColumnEmpty(grid: Grid, index: number): boolean {
+    return grid.every((row) => row[index] === '.')
+}
+
+export function rowOfDots(grid: Grid): '.'[] {
+    return new Array(grid[0].length).fill('.')
 }
 
 export function removeGridWidget(grid: string, id: WidgetName, _: Move['selection']): string {
