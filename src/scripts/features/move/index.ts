@@ -6,8 +6,9 @@ import {
     setAlign,
     setAllAligns,
     setGridAreas,
+    updateOverlayButtons,
 } from './dom.ts'
-import { addGridWidget, getWidgetsStorage, gridParse, isDomHealthy } from './helpers.ts'
+import { addGridWidget, getGridWidgets, getWidgetsStorage, gridParse, isDomHealthy, MOVE_WIDGETS } from './helpers.ts'
 import { SYNC_DEFAULT } from '../../defaults.ts'
 import { toggleWidget } from './widgets.ts'
 import { gridShrink } from './shrink.ts'
@@ -106,6 +107,16 @@ export async function updateMoveElement(event: UpdateMove): Promise<void> {
             alignChange(data.move, event.id, { text: event.text })
         }
     }
+
+    if (
+        event.move ||
+        event.grow ||
+        event.reset ||
+        event.toggle ||
+        event.shrink
+    ) {
+        updateOverlayButtons(data.move)
+    }
 }
 
 function alignChange(move: SimpleMove, id: WidgetName, options: AlignChangeOptions): void {
@@ -197,8 +208,8 @@ function toggleMoveStatus(data: Sync, force?: boolean): void {
 //     }
 // }
 
-function isWidget(str = ''): str is WidgetName {
-    return ['time', 'main', 'quicklinks', 'notes', 'quotes', 'searchbar', 'pomodoro'].includes(str)
+export function isWidget(str = ''): str is WidgetName {
+    return (MOVE_WIDGETS as unknown as string[]).includes(str)
 }
 function isHorizontalAlign(str = ''): str is SimpleMoveHorizontal {
     return ['center', 'left', 'right'].includes(str)

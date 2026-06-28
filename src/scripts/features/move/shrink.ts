@@ -2,7 +2,7 @@ import { gridFindObject, trimGridEdges } from './helpers.ts'
 import { setGridAreas } from './dom.ts'
 import { storage } from '../../storage.ts'
 
-import type { Direction } from './helpers.ts'
+import type { Direction, WidgetInGrid } from './helpers.ts'
 import type { SimpleMove } from '../../../types/sync.ts'
 import type { WidgetName } from '../../../types/shared.ts'
 
@@ -10,15 +10,10 @@ export function gridShrink(move: SimpleMove, id: WidgetName, direction: Directio
     const widget = gridFindObject(move.grid, id)
     const grid = move.grid
 
-    const isVertical = direction === 'up' || direction === 'down'
-    const isHorizontal = direction === 'left' || direction === 'right'
-    const isTooThin = isVertical && widget?.height <= 1
-    const isTooNarrow = isHorizontal && widget?.width <= 1
-
     if (!widget.positions.length) {
         return
     }
-    if (isTooThin || isTooNarrow) {
+    if (!canShrink(widget, direction)) {
         return
     }
 
@@ -61,4 +56,18 @@ export function gridShrink(move: SimpleMove, id: WidgetName, direction: Directio
     trimGridEdges(move.grid)
     setGridAreas(move.grid)
     storage.sync.set({ move })
+}
+
+export function canShrink(widget: WidgetInGrid, direction: Direction): boolean {
+    const isHorizontal = direction === 'left' || direction === 'right'
+    const isVertical = direction === 'up' || direction === 'down'
+
+    if (isHorizontal) {
+        return widget.width > 1
+    }
+    if (isVertical) {
+        return widget.height > 1
+    }
+
+    return false
 }

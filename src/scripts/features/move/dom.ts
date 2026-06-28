@@ -1,10 +1,11 @@
-import { moveElements, updateMoveElement } from './index.ts'
-import { elements, gridStringify } from './helpers.ts'
+import { isWidget, moveElements, updateMoveElement } from './index.ts'
+import { elements, gridFindObject, gridStringify, MOVE_WIDGETS } from './helpers.ts'
 import { getHTMLTemplate } from '../../shared/dom.ts'
 import { onclickdown } from 'clickdown/mod'
 
-import type { MoveLayout, SimpleMoveWidget } from '../../../types/sync.ts'
+import type { MoveLayout, SimpleMove, SimpleMoveWidget } from '../../../types/sync.ts'
 import type { WidgetName } from '../../../types/shared.ts'
+import { canShrink } from './shrink.ts'
 
 const dominterface = document.querySelector<HTMLElement>('#interface')
 
@@ -131,6 +132,46 @@ export function initOverlayActions(overlay: HTMLDivElement, id: WidgetName): voi
     })
 }
 
+export function updateOverlayButtons(move: SimpleMove): void {
+    const overlays = document.querySelectorAll<HTMLElement>(`.move-overlay`)
+
+    for (const overlay of overlays) {
+        const id = overlay.dataset.widgetName
+
+        if (!isWidget(id)) {
+            console.warn(`${id} is not widget`)
+            return
+        }
+
+        const moveShrinkBottom = overlay.querySelector<HTMLElement>('#move-shrink-bottom')
+        const moveShrinkRight = overlay.querySelector<HTMLElement>('#move-shrink-right')
+        const moveShrinkLeft = overlay.querySelector<HTMLElement>('#move-shrink-left')
+        const moveShrinkTop = overlay.querySelector<HTMLElement>('#move-shrink-top')
+        const widget = gridFindObject(move.grid, id)
+
+        if (canShrink(widget, 'down')) {
+            moveShrinkBottom?.removeAttribute('disabled')
+        } else {
+            moveShrinkBottom?.setAttribute('disabled', '')
+        }
+        if (canShrink(widget, 'up')) {
+            moveShrinkTop?.removeAttribute('disabled')
+        } else {
+            moveShrinkTop?.setAttribute('disabled', '')
+        }
+        if (canShrink(widget, 'left')) {
+            moveShrinkLeft?.removeAttribute('disabled')
+        } else {
+            moveShrinkLeft?.setAttribute('disabled', '')
+        }
+        if (canShrink(widget, 'right')) {
+            moveShrinkRight?.removeAttribute('disabled')
+        } else {
+            moveShrinkRight?.setAttribute('disabled', '')
+        }
+    }
+}
+
 export function displayToolbar(state: boolean): void {
     const toolbar = document.querySelector<HTMLElement>('#move-toolbar')
 
@@ -158,6 +199,7 @@ export function displayToolbar(state: boolean): void {
 export function addOverlay(id: WidgetName): void {
     const overlay = getHTMLTemplate<HTMLDivElement>('move-overlay-template', '.move-overlay')
     overlay.id = `move-overlay-${id}`
+    overlay.dataset.widgetName = id
 
     dominterface?.appendChild(overlay)
     initOverlayActions(overlay, id)

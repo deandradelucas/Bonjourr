@@ -91,6 +91,12 @@
         border-color: rgb(var(--accent-color));
         background-color: rgba(var(--accent-color) / 0.15);
     }
+
+    &:disabled {
+        pointer-events: none;
+        user-select: none;
+        filter: brightness(.8);
+    }
 }
 
 .move-overlay-grid li {
