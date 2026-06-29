@@ -319,6 +319,30 @@ export function addGridWidget(grid: string, id: WidgetName): string {
     return rows.join(' ')
 }
 
+export function isValidGrid(grid: Grid): boolean {
+    for (const id of MOVE_WIDGETS) {
+        const positions = gridFind(grid, id)
+
+        if (positions.length === 0) {
+            continue
+        }
+
+        const cols = positions.map((p) => p[0])
+        const rows = positions.map((p) => p[1])
+        const minCol = Math.min(...cols)
+        const maxCol = Math.max(...cols)
+        const minRow = Math.min(...rows)
+        const maxRow = Math.max(...rows)
+        const expectedCells = (maxCol - minCol + 1) * (maxRow - minRow + 1)
+
+        if (positions.length !== expectedCells) {
+            return false
+        }
+    }
+
+    return true
+}
+
 export function trimGridEdges(grid: Grid): void {
     const multipleRows = grid.length > 1
     const multipleCols = grid[0].length > 1

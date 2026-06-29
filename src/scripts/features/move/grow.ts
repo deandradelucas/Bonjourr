@@ -1,4 +1,4 @@
-import { gridFind, gridFindObject, MOVE_WIDGETS, rowOfDots, trimGridEdges } from './helpers.ts'
+import { gridFind, gridFindObject, isValidGrid, MOVE_WIDGETS, rowOfDots, trimGridEdges } from './helpers.ts'
 import { setGridAreas } from './dom.ts'
 import { storage } from '../../storage.ts'
 
@@ -9,24 +9,49 @@ import type { WidgetName } from '../../../types/shared.ts'
 type WidgetSize = { width: number; height: number }
 type WidgetSizes = Map<WidgetName, WidgetSize>
 
-//
+/*
+ * grid.ts and grow.ts have the same file structure
+ */
 
 export function gridGrow(move: SimpleMove, id: WidgetName, direction: Direction): void {
-    const widget = gridFindObject(move.grid, id)
-    const sizes = toSizeMap(move)
+    const grid = growWidgetInGrid(move, id, direction)
 
-    if (!widget.positions.length) {
+    if (!isValidGrid(grid)) {
         return
     }
 
-    // Mutates move step by step
-    addGridEdgesForGrow(move, direction, widget, id)
-    expandWidget(move, id, widget, direction)
-    fixGridCollisions(move, sizes, id)
-    trimGridEdges(move.grid)
+    move.grid = grid
     setGridAreas(move.grid)
-
     storage.sync.set({ move })
+}
+
+export function canGrow(move: SimpleMove, id: WidgetName, direction: Direction): boolean {
+    try {
+        return isValidGrid(
+            growWidgetInGrid(move, id, direction),
+        )
+    } catch (_) {
+        return false
+    }
+}
+
+/** Step 0 */
+function growWidgetInGrid(move: SimpleMove, id: WidgetName, direction: Direction): Grid {
+    const widget = gridFindObject(move.grid, id)
+
+    if (!widget.positions.length) {
+        throw new Error('Widget not found in grid')
+    }
+
+    const clone = structuredClone(move) as SimpleMove
+    const cloneWidget = gridFindObject(clone.grid, id)
+
+    addGridEdgesForGrow(clone, direction, cloneWidget, id)
+    expandWidget(clone, id, cloneWidget, direction)
+    fixGridCollisions(clone, toSizeMap(clone), id)
+    trimGridEdges(clone.grid)
+
+    return clone.grid
 }
 
 /** Step 1: Add grid edges if the widget is at the edge */
@@ -254,4 +279,3 @@ function isRectangle(grid: Grid, id: string): boolean {
 
     return positions.length === expectedCells
 }
-

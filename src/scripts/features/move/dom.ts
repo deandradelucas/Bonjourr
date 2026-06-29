@@ -1,11 +1,13 @@
 import { isWidget, moveElements, updateMoveElement } from './index.ts'
-import { elements, gridFindObject, gridStringify, MOVE_WIDGETS } from './helpers.ts'
+import { elements, gridFindObject, gridStringify } from './helpers.ts'
 import { getHTMLTemplate } from '../../shared/dom.ts'
 import { onclickdown } from 'clickdown/mod'
 
 import type { MoveLayout, SimpleMove, SimpleMoveWidget } from '../../../types/sync.ts'
 import type { WidgetName } from '../../../types/shared.ts'
 import { canShrink } from './shrink.ts'
+import { canGrow } from './grow.ts'
+import { canMove } from './grid.ts'
 
 const dominterface = document.querySelector<HTMLElement>('#interface')
 
@@ -143,32 +145,37 @@ export function updateOverlayButtons(move: SimpleMove): void {
             return
         }
 
+        const widget = gridFindObject(move.grid, id)
+
         const moveShrinkBottom = overlay.querySelector<HTMLElement>('#move-shrink-bottom')
         const moveShrinkRight = overlay.querySelector<HTMLElement>('#move-shrink-right')
         const moveShrinkLeft = overlay.querySelector<HTMLElement>('#move-shrink-left')
         const moveShrinkTop = overlay.querySelector<HTMLElement>('#move-shrink-top')
-        const widget = gridFindObject(move.grid, id)
 
-        if (canShrink(widget, 'down')) {
-            moveShrinkBottom?.removeAttribute('disabled')
-        } else {
-            moveShrinkBottom?.setAttribute('disabled', '')
-        }
-        if (canShrink(widget, 'up')) {
-            moveShrinkTop?.removeAttribute('disabled')
-        } else {
-            moveShrinkTop?.setAttribute('disabled', '')
-        }
-        if (canShrink(widget, 'left')) {
-            moveShrinkLeft?.removeAttribute('disabled')
-        } else {
-            moveShrinkLeft?.setAttribute('disabled', '')
-        }
-        if (canShrink(widget, 'right')) {
-            moveShrinkRight?.removeAttribute('disabled')
-        } else {
-            moveShrinkRight?.setAttribute('disabled', '')
-        }
+        moveShrinkBottom?.toggleAttribute('disabled', !canShrink(widget, 'down'))
+        moveShrinkTop?.toggleAttribute('disabled', !canShrink(widget, 'up'))
+        moveShrinkLeft?.toggleAttribute('disabled', !canShrink(widget, 'left'))
+        moveShrinkRight?.toggleAttribute('disabled', !canShrink(widget, 'right'))
+
+        const moveGrowBottom = overlay.querySelector<HTMLElement>('#move-grow-bottom')
+        const moveGrowRight = overlay.querySelector<HTMLElement>('#move-grow-right')
+        const moveGrowLeft = overlay.querySelector<HTMLElement>('#move-grow-left')
+        const moveGrowTop = overlay.querySelector<HTMLElement>('#move-grow-top')
+
+        moveGrowBottom?.toggleAttribute('disabled', !canGrow(move, id, 'down'))
+        moveGrowTop?.toggleAttribute('disabled', !canGrow(move, id, 'up'))
+        moveGrowLeft?.toggleAttribute('disabled', !canGrow(move, id, 'left'))
+        moveGrowRight?.toggleAttribute('disabled', !canGrow(move, id, 'right'))
+
+        const moveGridBottom = overlay.querySelector<HTMLElement>('#move-grid-bottom')
+        const moveGridRight = overlay.querySelector<HTMLElement>('#move-grid-right')
+        const moveGridLeft = overlay.querySelector<HTMLElement>('#move-grid-left')
+        const moveGridTop = overlay.querySelector<HTMLElement>('#move-grid-top')
+
+        moveGridBottom?.toggleAttribute('disabled', !canMove(move, id, 'down'))
+        moveGridTop?.toggleAttribute('disabled', !canMove(move, id, 'up'))
+        moveGridLeft?.toggleAttribute('disabled', !canMove(move, id, 'left'))
+        moveGridRight?.toggleAttribute('disabled', !canMove(move, id, 'right'))
     }
 }
 
