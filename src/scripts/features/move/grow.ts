@@ -1,4 +1,4 @@
-import { gridFind, gridFindObject, isValidGrid, MOVE_WIDGETS, rowOfDots, trimGridEdges } from './helpers.ts'
+import { gridFindObject, isValidGrid, MOVE_WIDGETS, rowOfDots, trimGridEdges } from './helpers.ts'
 import { setGridAreas } from './dom.ts'
 import { storage } from '../../storage.ts'
 
@@ -27,9 +27,7 @@ export function gridGrow(move: SimpleMove, id: WidgetName, direction: Direction)
 
 export function canGrow(move: SimpleMove, id: WidgetName, direction: Direction): boolean {
     try {
-        return isValidGrid(
-            growWidgetInGrid(move, id, direction),
-        )
+        return isValidGrid(growWidgetInGrid(move, id, direction))
     } catch (_) {
         return false
     }
@@ -48,7 +46,6 @@ function growWidgetInGrid(move: SimpleMove, id: WidgetName, direction: Direction
 
     addGridEdgesForGrow(clone, direction, cloneWidget, id)
     expandWidget(clone, id, cloneWidget, direction)
-    fixGridCollisions(clone, toSizeMap(clone), id)
     trimGridEdges(clone.grid)
 
     return clone.grid
@@ -65,10 +62,12 @@ function addGridEdgesForGrow(move: SimpleMove, dir: Direction, widget: WidgetInG
 
     if (dir === 'up' && isTop) {
         move.grid.unshift(rowOfDots(move.grid))
+
         // Update all widget positions after adding row at top
         for (const widgetId of MOVE_WIDGETS) {
-            const w = gridFindObject(move.grid, widgetId)
-            for (const position of w.positions) {
+            const { positions } = gridFindObject(move.grid, widgetId)
+
+            for (const position of positions) {
                 position.row++
             }
         }
@@ -78,10 +77,12 @@ function addGridEdgesForGrow(move: SimpleMove, dir: Direction, widget: WidgetInG
         for (const row of move.grid) {
             row.unshift('.')
         }
+
         // Update all widget positions after adding column at left
         for (const widgetId of MOVE_WIDGETS) {
-            const w = gridFindObject(move.grid, widgetId)
-            for (const position of w.positions) {
+            const { positions } = gridFindObject(move.grid, widgetId)
+
+            for (const position of positions) {
                 position.col++
             }
         }
@@ -101,48 +102,45 @@ function addGridEdgesForGrow(move: SimpleMove, dir: Direction, widget: WidgetInG
 /** Step 2: Expand the widget by 1 cell in the given direction */
 function expandWidget(move: SimpleMove, id: WidgetName, widget: WidgetInGrid, dir: Direction): void {
     const grid = move.grid
-
-    // Find the edge cells of the widget in the growth direction
-    let targetCells: { col: number; row: number }[] = []
-
-    if (dir === 'down') {
-        const maxRow = Math.max(...widget.positions.map((p) => p.row))
-        targetCells = widget.positions.filter((p) => p.row === maxRow).map((p) => ({ col: p.col, row: p.row + 1 }))
-    }
-
-    if (dir === 'up') {
-        const minRow = Math.min(...widget.positions.map((p) => p.row))
-        targetCells = widget.positions.filter((p) => p.row === minRow).map((p) => ({ col: p.col, row: p.row - 1 }))
-    }
-
-    if (dir === 'right') {
-        const maxCol = Math.max(...widget.positions.map((p) => p.col))
-        targetCells = widget.positions.filter((p) => p.col === maxCol).map((p) => ({ col: p.col + 1, row: p.row }))
-    }
-
-    if (dir === 'left') {
-        const minCol = Math.min(...widget.positions.map((p) => p.col))
-        targetCells = widget.positions.filter((p) => p.col === minCol).map((p) => ({ col: p.col - 1, row: p.row }))
-    }
-
-    // Store displaced widgets before expanding
+    const positions = widget.positions
     const displacedWidgets = new Set<WidgetName>()
+    const targetCells: { col: number; row: number }[] = []
 
-    for (const { col, row } of targetCells) {
-        const cellContent = grid[row][col]
-        if (cellContent !== '.' && cellContent !== id) {
-            displacedWidgets.add(cellContent as WidgetName)
+    const maxRow = Math.max(...positions.map((p) => p.row))
+    const minRow = Math.min(...positions.map((p) => p.row))
+    const maxCol = Math.max(...positions.map((p) => p.col))
+    const minCol = Math.min(...positions.map((p) => p.col))
+
+    for (const { row, col } of positions) {
+        if (dir === 'down' && row === maxRow) {
+            targetCells.push({ col, row: row + 1 })
+        }
+        if (dir === 'up' && row === minRow) {
+            targetCells.push({ col, row: row - 1 })
+        }
+        if (dir === 'right' && col === maxCol) {
+            targetCells.push({ row, col: col + 1 })
+        }
+        if (dir === 'left' && col === minCol) {
+            targetCells.push({ row, col: col - 1 })
         }
     }
 
-    // Expand the widget into target cells
     for (const { col, row } of targetCells) {
-        grid[row][col] = id
+        const cellId = grid[row][col]
+        const isOtherWidget = cellId !== '.' && cellId !== id
+
+        if (isOtherWidget) {
+            displacedWidgets.add(cellId as WidgetName)
+        }
     }
 
-    // Push displaced widgets in the growth direction
     for (const displacedId of displacedWidgets) {
         pushWidget(move, displacedId, dir)
+    }
+
+    for (const { col, row } of targetCells) {
+        grid[row][col] = id
     }
 }
 
@@ -207,43 +205,9 @@ function pushWidget(move: SimpleMove, id: WidgetName, dir: Direction): void {
     }
 }
 
-/** Step 4: Fix any grid collisions by ensuring all widgets are rectangles */
-function fixGridCollisions(move: SimpleMove, _sizes: WidgetSizes, growingId: WidgetName): void {
-    for (let _ = 0; _ < 100; _++) {
-        let isLayoutStable = true
-
-        for (const id of MOVE_WIDGETS) {
-            if (id !== growingId && !isRectangle(move.grid, id)) {
-                // Widget is not a rectangle, needs fixing
-                isLayoutStable = false
-                // For now, we'll rely on the pushing mechanism
-                // Additional collision fixes can be added here if needed
-            }
-        }
-
-        if (isLayoutStable) {
-            break
-        }
-    }
-}
-
 /**
  * Helper functions
  */
-
-function toSizeMap(move: SimpleMove): WidgetSizes {
-    const sizes = new Map<WidgetName, WidgetSize>()
-
-    for (const id of MOVE_WIDGETS) {
-        const { positions, width, height } = gridFindObject(move.grid, id)
-
-        if (positions.length) {
-            sizes.set(id, { width, height })
-        }
-    }
-
-    return sizes
-}
 
 function isWidgetAtEdge(grid: Grid, widget: WidgetInGrid, dir: Direction): boolean {
     const cols = widget.positions.map((p) => p.col)
@@ -261,21 +225,4 @@ function isWidgetAtEdge(grid: Grid, widget: WidgetInGrid, dir: Direction): boole
         case 'left':
             return Math.min(...cols) === 0
     }
-}
-
-function isRectangle(grid: Grid, id: string): boolean {
-    const positions = gridFind(grid, id)
-    if (positions.length === 0) return true
-
-    const cols = positions.map((p) => p[0])
-    const rows = positions.map((p) => p[1])
-
-    const minCol = Math.min(...cols)
-    const maxCol = Math.max(...cols)
-    const minRow = Math.min(...rows)
-    const maxRow = Math.max(...rows)
-
-    const expectedCells = (maxCol - minCol + 1) * (maxRow - minRow + 1)
-
-    return positions.length === expectedCells
 }
