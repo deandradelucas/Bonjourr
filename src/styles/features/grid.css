@@ -159,17 +159,23 @@
     margin: -5.5px;
 }
 
+.move-overlay .move-overlay-align li:nth-child(1) input[type='range']::-webkit-slider-thumb {
+    height: 20px;
+    width: 12px;
+    margin: -5px;
+}
+
 .move-overlay input[type='range']::-webkit-slider-runnable-track {
     height: 2px;
     width: 2px;
     background: #fff6;
 }
 
-.move-overlay .move-overlay-align li {
+.move-overlay .move-overlay-align li > div {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
+    width: 100%;
     padding: 0.2em;
     border-radius: 0.5em;
     border: 2px solid transparent;
@@ -184,14 +190,17 @@
 .move-overlay .move-overlay-align input {
     width: 100%;
     margin-inline-start: 0.5em;
-    max-width: 10em;
+}
+
+.move-overlay .move-overlay-align li:nth-child(1) > div {
+    flex-direction: column;
+    height: 100%;
 }
 
 .move-overlay .move-overlay-align li:nth-child(1) {
     top: 4em;
     left: 4em;
-    bottom: 4em;
-    flex-direction: column;
+    bottom: 5em;
 
     label img {
         width: 20px;
@@ -201,7 +210,8 @@
 
 .move-overlay .move-overlay-align li:nth-child(2) {
     bottom: 7em;
-    left: 7em;
+    right: 5em;
+    left: 8em;
 
     label img {
         width: 20px;
@@ -211,7 +221,8 @@
 
 .move-overlay .move-overlay-align li:nth-child(3) {
     bottom: 4em;
-    left: 7em;
+    right: 5em;
+    left: 8em;
 
     label img {
         width: 16px;
