@@ -72,15 +72,6 @@ Bonjourr strictly follows Deno's built-in formatting and linting rules.
 
 ---
 
-## 4. Internationalization (i18n)
-
-- All user-facing strings should be localized.
-- Use `traduction(null, sync.lang)` for initial translation and `setTranslationCache` for caching.
-- To update translations after adding new keys to `_locales`, run:
-  ```bash
-  deno task translate
-  ```
-
 ## 6. Feature Script & Settings Architecture
 
 ### Core Entry Point: The Dispatcher
@@ -250,6 +241,12 @@ Light and dark themes are handled via data attributes:
 - Descriptive comments when creating complex selectors
 - Consistent naming conventions
 - Logical grouping of related styles
+
+#### 5. Use of AI & vibe coding
+
+- AI is a tool, not a developer.
+- Contributors must understand and take responsibility for all submitted code.
+- No features should be built entirely through vibe coding.
 
 ### Naming Conventions
 

@@ -4,8 +4,9 @@ import { transitioner } from '../utils/transitioner.ts'
 import { debounce } from '../utils/debounce.ts'
 import { onclickdown } from 'clickdown/mod'
 import { backgroundUpdate, toggleMuteStatus } from './backgrounds/index.ts'
+import { quotes } from './quotes.ts'
+import { turnRefreshButton } from '../shared/dom.ts'
 import { storage } from '../storage.ts'
-
 import type { Backgrounds } from '../../types/sync.ts'
 
 interface EventLocation {
@@ -15,6 +16,8 @@ interface EventLocation {
         main: boolean
         quotes: boolean
         pomodoro: boolean
+        searchbar: boolean
+        notes: boolean
     }
     interface: boolean
 }
@@ -41,6 +44,14 @@ const sectionMatching: Record<string, Section> = {
         section: '#pomodoro_container',
         scrollto: 'pomodoro_title',
     },
+    searchbar: {
+        section: '#sb_container',
+        scrollto: 'searchbar_title',
+    },
+    notes: {
+        section: '#notes_container',
+        scrollto: 'notes_title',
+    },
 }
 
 const mainInterface = document.getElementById('interface') as HTMLDivElement
@@ -51,7 +62,9 @@ let eventLocation: EventLocation
 export function openContextMenu(event: Event): void {
     const selection = globalThis.getSelection() // imperfect selected text detection to allow for OS context menu
 
-    if (selection && !selection.isCollapsed) {
+    const notesAreSelected = document.querySelector('#notes_container div[data-selected]')
+
+    if (selection?.toString() || notesAreSelected) {
         return
     }
 
@@ -64,8 +77,10 @@ export function openContextMenu(event: Event): void {
             main: !!target.closest(sectionMatching.main.section),
             quotes: !!target.closest(sectionMatching.quotes.section),
             pomodoro: !!target.closest(sectionMatching.pomodoro.section),
+            searchbar: !!target.closest(sectionMatching.searchbar.section),
+            notes: !!target.closest(sectionMatching.notes.section),
         },
-        interface: target.matches('main#interface'),
+        interface: target.matches('main#interface') || target.matches('body'),
     }
 
     const pointer = event as PointerEvent
@@ -108,6 +123,10 @@ export function openContextMenu(event: Event): void {
         showTheseElements('#pomodoro-info')
     }
 
+    if (eventLocation.widgets.quotes) {
+        showTheseElements('#b_interface-quotes-refresh')
+    }
+
     if (clickedOnWidgets) {
         const allWidgets = Object.entries(eventLocation.widgets)
         const clickedOnWidgets = allWidgets.filter(([_, clicked]) => clicked)
@@ -124,9 +143,15 @@ export function openContextMenu(event: Event): void {
     if (eventLocation.interface) {
         populateDialogWithAction('openTheseSettings', 'background_title')
 
+        // to be added when new move elem is done
+        // if (showsAllSettings) {
+        //     populateDialogWithAction('openTheseSettings', 'layout_title')
+        // }
+
         // add new link button if quick links are enabled
         if (!document.querySelector('#linkblocks.hidden')) {
             populateDialogWithAction('add-new-link')
+            populateDialogWithAction('openTheseSettings', 'links_title')
         }
 
         showTheseElements('#background-actions')
@@ -187,7 +212,7 @@ export function positionContextMenu(event: Event): void {
     }
 
     if (rightToLeft) {
-        x *= -1
+        x = x - innerWidth + w
     }
 
     domdialog.style.transform = `translate(${Math.floor(x)}px, ${Math.floor(y)}px)`
@@ -223,14 +248,16 @@ queueMicrotask(() => {
             return
         }
 
-        // if right click inside interface, custom context menu
-        if (mainInterface?.contains(event.target as Node)) {
+        // if right click inside interface/body, custom context menu
+        if (mainInterface?.contains(event.target as Node) || event.target === document.body) {
             openContextMenu(event)
             return
         }
 
-        // Otherwise, closes the custom one and opens the regular one
-        closeContextMenu()
+        // Otherwise, if not in context menu inputs, closes the custom one and opens the regular one
+        if (!document.querySelector('#contextmenu.shown')?.contains(event.target as Node)) {
+            closeContextMenu()
+        }
     })
 
     // closes context menu when moving to other tab/window
@@ -256,11 +283,7 @@ queueMicrotask(() => {
     // for when needing to close context menu from elsewhere
     document.addEventListener('close-edit', closeContextMenu)
 
-    // these are "open x settings" inside context menu
-    const openSettingsButtons = domdialog.querySelectorAll<HTMLButtonElement>(`[data-action="openTheseSettings"]`)
-    openSettingsButtons?.forEach((btn) => {
-        btn?.addEventListener('click', openSettingsButtonEvent)
-    })
+    handleContextMenuEvents()
 
     const addNewLinkButton = domdialog.querySelector<HTMLButtonElement>(`[data-action="add-new-link"]`)
     addNewLinkButton?.addEventListener('click', (event) => populateDialogWithEditLink(event, domdialog, true))
@@ -306,6 +329,21 @@ export function closeContextMenu(): void {
         // stops multi-selection mode for quick links
         document.dispatchEvent(new Event('remove-select-all'))
     }
+}
+
+function handleContextMenuEvents(): void {
+    // these are "open x settings" inside context menu
+    const openSettingsButtons = domdialog.querySelectorAll<HTMLButtonElement>(`[data-action="openTheseSettings"]`)
+    openSettingsButtons?.forEach((btn) => {
+        btn?.addEventListener('click', openSettingsButtonEvent)
+    })
+
+    onclickdown(document.getElementById('b_interface-quotes-refresh'), (event) => {
+        quotes(undefined, { refresh: true })
+        turnRefreshButton(event, true)
+    })
+
+    // for backgrounds buttons, see handleBackgroundActions()
 }
 
 export function handleBackgroundActions(backgrounds: Backgrounds): void {

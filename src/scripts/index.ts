@@ -1,4 +1,4 @@
-import { darkmode, favicon, pageControl, tabTitle, textShadow } from './features/others.ts'
+import { altMode, darkmode, favicon, pageControl, tabTitle, textShadow } from './features/others.ts'
 import { supportersNotifications } from './features/supporters.ts'
 import { synchronization } from './features/synchronization/index.ts'
 import { backgroundsInit } from './features/backgrounds/index.ts'
@@ -94,6 +94,10 @@ async function startup(): Promise<void> {
     operaExtensionExplainer(local.operaExplained)
     tabsTracking()
 
+    if (sync.advanced.altMode) {
+        altMode()
+    }
+
     document.documentElement.dataset.system = SYSTEM_OS as string
     document.documentElement.dataset.browser = BROWSER as string
     document.documentElement.dataset.platform = PLATFORM as string
@@ -106,7 +110,7 @@ async function startup(): Promise<void> {
 
         supportersNotifications(sync)
         setPotatoComputerMode()
-        userActions()
+        userActions(sync.advanced)
 
         interfacePopup({
             announce: sync.announcements,

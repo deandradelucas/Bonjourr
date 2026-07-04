@@ -59,7 +59,7 @@ interface BackgroundUpdate {
 const propertiesUpdateDebounce = debounce(filtersUpdate, 600)
 const colorUpdateDebounce = debounce(solidUpdate, 600)
 const fadeinPreviewDebounce = debounce(previewFadein, 200)
-let fadeinTimeout = 0
+let fadeinTimeout: ReturnType<typeof setTimeout>
 
 const formBackgroundUserColl = networkForm('f_background-user-coll')
 const formBackgroundUserSearch = networkForm('f_background-user-search')
@@ -243,7 +243,7 @@ export async function backgroundUpdate(update: BackgroundUpdate): Promise<void> 
     }
 
     if (isBackgroundTexture(update.texture)) {
-        data.backgrounds.texture = { type: update.texture }
+        data.backgrounds.texture.type = update.texture
         storage.sync.set({ backgrounds: data.backgrounds })
         handleBackgroundOptions(data.backgrounds)
         applyTexture(data.backgrounds.texture)

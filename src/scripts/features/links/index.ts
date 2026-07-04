@@ -12,6 +12,7 @@ import {
     getLinksInGroup,
     isElem,
     isLink,
+    isTypingTarget,
 } from './helpers.ts'
 
 import { randomString, stringMaxSize } from '../../shared/generic.ts'
@@ -23,7 +24,7 @@ import { storage } from '../../storage.ts'
 
 import type { Link, LinkElem, LinkFolder, LinkIcon } from '../../../types/shared.ts'
 import type { Local } from '../../../types/local.ts'
-import type { Sync } from '../../../types/sync.ts'
+import type { Advanced, Sync } from '../../../types/sync.ts'
 
 type AddLinks = {
     title: string
@@ -105,7 +106,7 @@ type LinksInit = {
 
 const domlinkblocks = document.getElementById('linkblocks') as HTMLDivElement
 let initIconList: [HTMLImageElement, string][] = []
-let selectallTimer = 0
+let selectallTimer: ReturnType<typeof setTimeout>
 
 export async function quickLinks(init?: LinksInit, event?: LinksUpdate): Promise<void> {
     if (event) {
@@ -124,6 +125,10 @@ export async function quickLinks(init?: LinksInit, event?: LinksUpdate): Promise
     domlinkblocks.classList.toggle('titles', sync.linktitles)
     domlinkblocks.classList.toggle('backgrounds', sync.linkbackgrounds)
     domlinkblocks.classList.toggle('hidden', !sync.quicklinks)
+
+    document.addEventListener('keydown', (event) => {
+        openLinksWithKeyboard(init.sync.advanced, event)
+    })
 
     if (sync.linkgroups.synced.length > 0) {
         await initBookmarkSync(sync)
@@ -248,6 +253,7 @@ export function initblocks(sync: Sync, local?: Local): true {
 
     setRadius(sync.linkiconradius)
     displayInterface('links')
+    limitAltableLinks()
 
     return true
 }
@@ -285,7 +291,7 @@ function createFolder(link: LinkFolder, folderChildren: Link[], style: Sync['lin
 
 function createElem(link: LinkElem, openInNewtab: boolean, style: Sync['linkstyle']): HTMLLIElement {
     const li = getHTMLTemplate<HTMLLIElement>('link-elem-template', 'li')
-    const span = li.querySelector('span')
+    const span = li.querySelector('span.link-elem-title')
     const anchor = li.querySelector('a')
     const img = li.querySelector('img')
 
@@ -914,4 +920,40 @@ function getIconFromLinkElem(link: LinkElem): string {
 
 function isLinkStyle(s: string): s is Sync['linkstyle'] {
     return ['large', 'medium', 'small', 'inline', 'text'].includes(s)
+}
+
+function openLinksWithKeyboard(advanced: Advanced, event: KeyboardEvent): void {
+    if (isTypingTarget(event.target) || !advanced.altMode) return
+
+    const { altKey, ctrlKey, metaKey, code } = event
+    const isNotAltComboKey = !altKey || ctrlKey || metaKey
+    const codeNumber = parseInt(code.replace('Digit', '').replace('Numpad', ''))
+
+    if (isNotAltComboKey || isNaN(codeNumber)) {
+        return
+    }
+
+    const links = document.querySelectorAll<HTMLLIElement>('.link')
+    const link = links[codeNumber - 1]
+
+    if (!link) {
+        return
+    }
+
+    event.preventDefault()
+
+    if (link.classList.contains('link-folder')) {
+        folderClick(event, link)
+    } else {
+        link.querySelector('a')?.click()
+    }
+}
+
+// no way to do this in CSS with the pinned groups :(
+export function limitAltableLinks(): void {
+    const links = document.querySelectorAll<HTMLElement>('#linkblocks .link')
+
+    links.forEach((link, i) => {
+        link.classList.toggle('no-alt', i >= 9)
+    })
 }

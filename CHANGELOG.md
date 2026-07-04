@@ -1,3 +1,69 @@
+## 22.3.0
+
+- New "Next quote" context menu button
+- Added advanced settings toggleable directly from JSON:
+    - `altMode` to disable the Alt Mode
+    - `escKey` to disable the escape key toggling settings
+- Apply settings management's JSON with `cmd/ctrl + enter` keybind
+- Fixed inability to right click (and copy/paste) on context menu inputs (#890)
+- Firefox bookmarks separators are now ignored (#753)
+- Fixed broken settings and context menu for RTL (right to left) languages
+- Fixed pomodoro widget not alignable using layout toolbox's text alignment
+- Fixed some quick links styling issues
+- Fixed digital world clocks overlapping when large font size + am/pm
+- Fixed really long link titles breaking quick links
+- Fixed refresh quote button not working on first click
+- Adjusted some text-shadows on #interface
+- Fixed a minor styling issue with selects in the Settings
+- No more tap-highlight-color (blue glow on touch) on Android devices (thanks @walway!)
+- New language: 🇮🇳 Marathi by @akdbtas 
+- New language: 🇲🇹 Maltese by @lucasfenech18
+
+## 22.2.1
+
+- fixes font color crash (#863)
+- fixes unusable layout toolbox (#862)
+
+## 22.2.0
+
+- New features:
+  - Change your font color with the new text color input
+  - Show temperature unit in weather description
+  - Open quick links faster with the `alt + number` keybind
+  - Add a new quick link with the `alt + N` keybind
+  - Open Quick Links, Notes and Search bar settings from context menu
+  - New language: 🇺🇿 Uzbek by [Uchkun Rakhimov](https://github.com/uchkunr)!
+- Improvements:
+  - Review notification now closes automatically after a while if it hasn't been interacted with
+  - Automatic weather unit assignment on install
+  - "Hide settings icon" and "12Hour-Time" options moved out of advanced features
+  - Weather icon now has a drop shadow (linked to the text shadow setting)
+  - You can now add line breaks to quotes using `\n`
+  - Better context menu icons consistency
+  - Performance improvements (thanks @Nachtfrische! #825)
+  - New CSS variables & possibilities! ([documented here](https://bonjourr.fr/docs/styles#colors-and-icons))
+  - New settings footer design
+  - Emoji as favicon is back on Edge (#700)
+- Bug fixes:
+  - Fixed broken AM/PM positioning
+  - Fixed digital clock jittering when seconds are enabled (thanks @trmdi! #815)
+  - Period at the end of weather description is more reliable
+  - Fixed invisble focus when tabbing to a range input
+  - Fixed Bonjourr crashing when opening folders with keyboard
+  - Fixed broken background URLs features after importing a JSON file that had them enabled
+  - Context menu now triggers on the edges of large windows
+  - Fixed date missing capitalisation in some languages
+  - Fixed space before comma when using "Day, month date" date format
+  - Fixed text in settings input looking like a placeholder
+- Localization updates (thank you!!):
+  - 🇵🇹 Portuguese by @Blackspirits 
+  - 🇪🇸 Spanish by @Carbaz & @palacios22c
+  - 🇮🇹 Italian by @antarcorrado
+  - 🇵🇱 Polish by @Zylvo
+  - 🇷🇸 Serbian by @rammba
+  - 🇻🇳 Vietnamese by @trmdi
+  - 🇧🇾 Belarusian by @The518thGuy 
+
 ## 22.1.0
 
 - New features:

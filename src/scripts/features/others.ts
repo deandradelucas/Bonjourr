@@ -4,6 +4,7 @@ import { stringMaxSize } from '../shared/generic.ts'
 import { eventDebounce } from '../utils/debounce.ts'
 import { tradThis } from '../utils/translations.ts'
 import { storage } from '../storage.ts'
+import { isTypingTarget } from './links/helpers.ts'
 
 export function favicon(val?: string, isEvent?: true): void {
     function createFavicon(emoji?: string): void {
@@ -16,10 +17,6 @@ export function favicon(val?: string, isEvent?: true): void {
         if (domfavicon) {
             domfavicon.href = emoji ? svgdata : defaulticon
         }
-    }
-
-    if (BROWSER === 'edge') {
-        return
     }
 
     if (isEvent) {
@@ -38,7 +35,11 @@ export function favicon(val?: string, isEvent?: true): void {
 export function tabTitle(val?: string, isEvent?: true): void {
     val ??= ''
 
-    document.title = stringMaxSize(val, 80) || tradThis('New tab')
+    const tabTitle = stringMaxSize(val, 80) || tradThis('New tab')
+
+    if (tabTitle !== document.title) {
+        document.title = tabTitle
+    }
 
     if (isEvent) {
         eventDebounce({ tabtitle: stringMaxSize(val, 80) })
@@ -114,6 +115,35 @@ export function textShadow(init?: number, event?: number): void {
     if (typeof event === 'number') {
         eventDebounce({ textShadow: val })
     }
+}
+
+export function altMode(): void {
+    document.addEventListener('keydown', (event: KeyboardEvent) => {
+        if (event.key === 'Alt' && !isTypingTarget(event.target)) {
+            document.documentElement.dataset.altMode = 'true'
+        }
+    })
+
+    document.addEventListener('keyup', (event: KeyboardEvent) => {
+        if (event.key === 'Alt') {
+            document.documentElement.dataset.altMode = 'false'
+        }
+    })
+
+    self.addEventListener('blur', () => {
+        document.documentElement.dataset.altMode = 'false'
+    })
+
+    // in case the user clicks on another window whilst alting
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            document.documentElement.dataset.altMode = 'false'
+        }
+    })
+
+    document.addEventListener('contextmenu', () => {
+        document.documentElement.dataset.altMode = 'false'
+    })
 }
 
 // Unfocus address bar on chromium

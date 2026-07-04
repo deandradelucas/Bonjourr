@@ -6,14 +6,13 @@ type Platform = 'chrome' | 'firefox' | 'edge' | 'online'
 type Env = 'dev' | 'prod' | 'test'
 
 const PLATFORMS: Platform[] = ['chrome', 'firefox', 'edge', 'online']
-const ENVS: Env[] = ['dev', 'prod', 'test']
+const _ENVS: Env[] = ['dev', 'prod', 'test']
 
 const args = Deno.args
 const platform = args[0]
 const env = args[1] ?? 'prod'
 
 const isPlatform = (s: string): s is Platform => PLATFORMS.includes(s as Platform)
-const _isEnv = (s: string): s is Env => ENVS.includes(s as Env)
 
 // Main
 
@@ -63,11 +62,11 @@ function builder(platform: Platform, env: Env): void {
 }
 
 function watcher(platform: Platform): void {
-    watchTasks('_locales', (_filename) => {
+    watchTasks('_locales', platform, (_filename) => {
         locales(platform)
     })
 
-    watchTasks('src', (filename) => {
+    watchTasks('src', platform, (filename) => {
         if (filename.includes('.html')) {
             html(platform)
         }
@@ -87,13 +86,9 @@ function watcher(platform: Platform): void {
 }
 
 function addDirectories(platform: Platform): void {
-    try {
-        if (existsSync(`release/${platform}/src`)) {
-            return
-        }
-    } catch (_) {
-        console.error('First build')
-    }
+    // if (existsSync(`release/${platform}/src`)) {
+    //     return
+    // }
 
     ensureDirSync(`release/${platform}/src/assets/favicons`)
     ensureDirSync(`release/${platform}/src/assets`)
@@ -115,9 +110,8 @@ function html(platform: Platform): void {
 
     let html = indexdata
 
-    if (platform !== 'edge') {
-        html = html.replace('<!-- default icon -->', favicon)
-    }
+    html = html.replace('<!-- default icon -->', favicon)
+
     if (platform === 'online') {
         html = html.replace('<!-- icon -->', icon)
     }
@@ -141,7 +135,7 @@ function styles(platform: Platform, env: Env): void {
             outfile: `release/${platform}/src/styles/style.css`,
             format: 'iife',
             bundle: true,
-            minify: platform === 'online',
+            minify: false,
             loader: {
                 '.svg': 'dataurl',
                 '.png': 'file',
@@ -150,7 +144,7 @@ function styles(platform: Platform, env: Env): void {
         })
     } catch (err) {
         if (env === 'prod') {
-            throw (err as Error).message
+            throw err
         } else {
             console.warn((err as Error).message)
         }
@@ -162,9 +156,10 @@ function scripts(platform: Platform, env: Env): void {
         buildSync({
             entryPoints: ['src/scripts/index.ts'],
             outfile: `release/${platform}/src/scripts/main.js`,
+            format: 'iife',
+            target: 'esnext',
             bundle: true,
-            target: 'es2023',
-            minify: platform === 'online',
+            minify: false,
             sourcemap: env === 'dev',
             define: {
                 ENV: `"${env.toUpperCase()}"`,
@@ -172,7 +167,7 @@ function scripts(platform: Platform, env: Env): void {
         })
     } catch (err) {
         if (env === 'prod') {
-            throw (err as Error).message
+            throw err
         } else {
             console.warn((err as Error).message)
         }
@@ -229,11 +224,12 @@ function manifests(platform: Platform): void {
     if (platform === 'online') {
         Deno.copyFileSync(
             'src/manifests/manifest.webmanifest',
-            'release/online/manifest.webmanifest',
+            `release/${platform}/manifest.webmanifest`,
         )
-    } else {
-        Deno.copyFileSync(`src/manifests/${platform}.json`, `release/${platform}/manifest.json`)
+        return
     }
+
+    Deno.copyFileSync(`src/manifests/${platform}.json`, `release/${platform}/manifest.json`)
 }
 
 function locales(platform: Platform): void {
@@ -246,19 +242,42 @@ function locales(platform: Platform): void {
 
         ensureDirSync(output)
 
-        Deno.copyFileSync(`_locales/${lang}/translations.json`, `${output}/translations.json`)
+        Deno.copyFileSync(
+            `_locales/${lang}/translations.json`,
+            `${output}/translations.json`,
+        )
 
         if (platform !== 'online') {
-            Deno.copyFileSync(`_locales/${lang}/messages.json`, `${output}/messages.json`)
+            Deno.copyFileSync(
+                `_locales/${lang}/messages.json`,
+                `${output}/messages.json`,
+            )
+        }
+
+        /**
+         * #873
+         * Duplicates language variant _locales with underscores
+         * because the Chrome Web Stores does not use the correct ISO standard for language codes
+         */
+        if (platform === 'chrome' && lang.includes('-')) {
+            const undercoredLang = lang.replaceAll('-', '_')
+            const output = `release/${platform}/_locales/${undercoredLang}`
+
+            ensureDirSync(output)
+
+            Deno.copyFileSync(
+                `_locales/${lang}/messages.json`,
+                `${output}/messages.json`,
+            )
         }
     }
 }
 
 // Deno stuff
 
-async function watchTasks(path: string, callback: (filename: string) => void): Promise<void> {
+async function watchTasks(path: string, platformName: string, callback: (filename: string) => void): Promise<void> {
     const watcher = Deno.watchFs(path)
-    let debounce = 0
+    let debounce: ReturnType<typeof setTimeout> | undefined = undefined
 
     for await (const event of watcher) {
         if (event.paths.length === 0) {
@@ -270,9 +289,9 @@ async function watchTasks(path: string, callback: (filename: string) => void): P
         }
 
         debounce = setTimeout(() => {
-            console.time(`${platform} built in`)
-            callback(event.paths[0].replaceAll('\\', '/')) // windows back slashes :(
-            console.timeEnd(`${platform} built in`)
+            console.time(`${platformName} built in`)
+            callback(event.paths[0].replaceAll('\\', '/'))
+            console.timeEnd(`${platformName} built in`)
         }, 20)
     }
 }

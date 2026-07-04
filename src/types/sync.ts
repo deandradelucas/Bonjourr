@@ -1,6 +1,7 @@
 import type { BackgroundImage, BackgroundVideo, Frequency, Frame, Link, PomodoroMode, Widgets } from './shared.ts'
 
 export interface Sync {
+    advanced: Advanced
     showall: boolean
     quicklinks: boolean
     time: boolean
@@ -158,6 +159,7 @@ export interface Font {
     family: string
     size: string
     weight: string
+    color?: string
     weightlist: string[]
     system?: boolean
     url?: string
@@ -211,6 +213,7 @@ export interface Weather {
     ccode?: string
     city?: string
     unit: 'metric' | 'imperial'
+    show_unit?: boolean
     geolocation: 'precise' | 'approximate' | 'off'
     forecast: 'auto' | 'always' | 'never'
     temperature: 'actual' | 'feelslike' | 'both'
@@ -232,4 +235,10 @@ export interface Pomodoro {
         endedAt: string
         duration: number
     }[]
+}
+
+export interface Advanced {
+    altMode: boolean
+    // disables escape key to toggle settings
+    escKey: boolean
 }

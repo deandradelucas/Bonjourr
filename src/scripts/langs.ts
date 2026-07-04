@@ -34,6 +34,7 @@ export const langList = {
     hy: 'Հայերեն',
     ar: 'العربية',
     az: 'Azərbaycan',
+    uz: "O'zbekcha",
     fa: 'فارسی',
     te: 'తెలుగు',
     id: 'Indonesia',
@@ -44,6 +45,8 @@ export const langList = {
     'nan-Hant-TW': '臺灣台語（漢羅）',
     ko: '한국어',
     ja: '日本語',
+    mr: 'Marathi',
+    mt: 'Malti',
 }
 
 // uses basic latin characters if not included
@@ -67,6 +70,7 @@ export const subsets = {
     hu: 'latin-ext',
     vi: 'latin-ext',
     az: 'latin-ext',
+    uz: 'latin-ext',
     ja: 'japanese',
     hy: 'armenian',
     te: 'telugu',

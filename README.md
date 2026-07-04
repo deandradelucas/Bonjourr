@@ -30,7 +30,7 @@ While it aims to look and feel minimal, it still brings you lots of options to c
 [<img src="https://labels.tahoe.be/chrome_download_dark.svg" height="53" alt="Download Bonjourr for Chrome">](https://chrome.google.com/webstore/detail/bonjourr-%C2%B7-minimalist-lig/dlnejlppicbjfcfcedcflplfjajinajd)
 [<img src="https://labels.tahoe.be/firefox_download_dark.svg" height="53" alt="Download Bonjourr for Firefox">](https://addons.mozilla.org/firefox/addon/bonjourr-startpage/)
 [<img src="https://labels.tahoe.be/edge_download_dark.svg" height="53" alt="Download Bonjourr for Edge">](https://microsoftedge.microsoft.com/addons/detail/bonjourr-%C2%B7-minimalist-l/dehmmlejmefjphdeoagelkpaoolicmid)
-[<img src="https://labels.tahoe.be/safari_download_dark.svg" height="53" alt="Download Bonjourr for Safari">](https://apps.apple.com/fr/app/bonjourr-startpage/id1615431236)
+[<img src="https://labels.tahoe.be/safari_download_dark.svg" height="53" alt="Download Bonjourr for Safari">]([https://apps.apple.com/fr/app/bonjourr-startpage/id1615431236](https://bonjourr.fr/docs/#safari))
 
 You can also [try it online 🌎](https://online.bonjourr.fr) before installing.
 
@@ -38,7 +38,7 @@ You can also [try it online 🌎](https://online.bonjourr.fr) before installing.
 
 ## 👋 Get in touch
 
-Follow us [on Bluesky](https://bsky.app/profile/bonjourr.fr) or check out [our Telegram group](https://t.me/BonjourrStartpage) where we discuss ideas, features and bug reports. You can also [send us an email](mailto:bonjourr.app@protonmail.com) :)
+Follow us [on Bluesky](https://bsky.app/profile/bonjourr.fr) or check out [our Discord server](https://discord.com/invite/CCAR9J4qVg) where we discuss ideas, features and bug reports. You can also [send us an email](mailto:bonjourr.app@protonmail.com) :)
 
 <br>
 
@@ -85,6 +85,7 @@ If you feel like we've earned it and you want to support independant open source
 
 - No frameworks, plain Typescript & CSS
 - Only small dependencies, [more on npmgraph](https://npmgraph.js.org/?q=https://raw.githubusercontent.com/victrme/Bonjourr/master/package.json#color=outdated)
+- No vibe coding
 - Our tiny hands 🙌
 
 <br>
@@ -96,7 +97,7 @@ If you feel like we've earned it and you want to support independant open source
 
 <br>
 
-## 🧑‍💻 Contributors and translations
+## 🌏 Translators
 
 - **🇸🇪 Swedish translation** · [Benjamin Horn](https://benjaminhorn.io/) · [GitHub](https://github.com/beije)
 - **🇳🇱 Dutch translation** · [Osman Temiz](https://www.reddit.com/user/manllac)
@@ -124,10 +125,21 @@ If you feel like we've earned it and you want to support independant open source
 - **🇯🇵 Japanese translation** · [Kou365](https://github.com/Kou365) & 石原英里華 (IshiharaErika)
 - **🇭🇷 Croatian translation** · Ghost
 - **🇦🇿 Azerbaijani translation** · Hacıağa Sadıxov · [GitHub](https://github.com/Hajiagha-Sadikhov)
+- **🇺🇿 Uzbek translation** · Uchkun Rakhimov · [GitHub](https://github.com/uchkunr)
 - **🇧🇾 Belarusian translation** · Eduard Račkoŭski · [GitHub](https://github.com/The518thGuy)
 - **🇰🇷 Korean translation** · Kim JeongHyeon · [GitHub](https://github.com/kimtibber)
+- **🇹🇼 Taigi (Hanji)** · GHSRobert Ciang · [GitHub](https://github.com/GJRobert)
+- **🇮🇳 Telugu translation** · Hajiaga Sadikhov · [GitHub](https://github.com/Hajiaga-Sadikhov)
+- **🇮🇸 Icelandic translation** · JonGretar · [GitHub](https://github.com/JonGretar)
+- **🇮🇳 Hindi translation** · Shriyash Patil · [GitHub](https://github.com/Shriyash-24)
+- **🇮🇳 Marathi translation** · AKDB · [GitHub](https://github.com/akdbtas)
+- **🇲🇹 Maltese translation** · Lucas Fenech Beaumont · [GitHub](https://github.com/lucasfenech18)
 
-## 👨‍💻 Running Bonjourr
+## 👨‍💻 On pull requests
+
+Bonjourr is open to pull requests, but they do need to be in the spirit of the extension. If you'd like to add a feature, please [open an issue](https://github.com/victrme/Bonjourr/issues) before you start working on it so we can discuss of its implementation. Additionaly, please read our [technical documentation](https://github.com/victrme/Bonjourr/blob/master/docs/TECHNICAL.md).
+
+## 🏃‍♂️ Running Bonjourr
 
 ### Self-host APIs
 
@@ -145,11 +157,14 @@ If you wish to self-host the APIs used by Bonjourr, you can do so by following t
 # In root directory
 deno install
 
-# These commands watch changes for each platforms
+# These commands watch changes for each platform
 deno task chrome
 deno task edge
 deno task firefox
 deno task online
+
+# Or build all platforms at once
+deno task build
 ```
 
 #### Chrome
@@ -190,15 +205,9 @@ Prerequisites:
 #### Docker CLI
 
 ```bash
-# Build the container image
-docker build -t bonjourr/bonjourr . -f docker/app/Dockerfile
-
-docker run --rm -p "8000:80/tcp" -it bonjourr/bonjourr
-```
-
-```bash
-# Build using docker compose
-docker compose up -f docker/compose.app.yaml -d
+docker compose -f docker/compose.yaml up
+# or
+deno task app
 ```
 
 Go to http://0.0.0.0:8000/

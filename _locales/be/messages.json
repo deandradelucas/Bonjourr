@@ -1,10 +1,10 @@
 {
     "extensionName": {
-        "message": "Bonjourr Мінімалістычная хатняя старонка",
-        "description": "назва дадатку"
+        "message": "Bonjourr · Мінімалістычная новая картка",
+        "description": "extension name"
     },
     "extensionDesc": {
-        "message": "Зрабіце вэб-сёрфінг камфортнейшым з Bonjourr: стыльны, лёгкі, наладжвальны дадатак.",
-        "description": "апісанне дадатку"
+        "message": "Прыгожая хатняя старонка, натхнёная iOS, якую лёгка дапасаваць і якая створана для спакойнага і сфакусаванага выкарыстання сеціва.",
+        "description": "extension description"
     }
 }

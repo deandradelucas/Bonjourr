@@ -21,6 +21,7 @@ export type WeatherUpdate = {
     moreinfo?: string
     provider?: string
     units?: string
+    show_unit?: boolean
     geol?: string
     city?: true
     temp?: string
@@ -28,7 +29,7 @@ export type WeatherUpdate = {
     suggestions?: Event
 }
 
-let pollingInterval = 0
+let pollingInterval: ReturnType<typeof setTimeout>
 
 export function weather(init?: WeatherInit, update?: WeatherUpdate): void {
     if (update) {
