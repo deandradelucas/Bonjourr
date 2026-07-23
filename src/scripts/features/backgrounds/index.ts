@@ -764,6 +764,49 @@ function createVideoItem(src: string, media: BackgroundVideo, duration: number):
     return container
 }
 
+function preloadBackground(media: Background | undefined, res?: BackgroundSize): void | Promise<unknown> {
+    if (!media) {
+        return
+    }
+
+    localStorage.setItem('backgroundPreloading', 'true')
+
+    const resolution = res ? res : detectBackgroundSize()
+
+    if (media.format === 'image') {
+        const src = prepareBackgroundImageUrl(media, resolution)
+        
+        const img = document.createElement('img')
+        img.fetchPriority = 'low'
+
+        return new Promise((resolve) => {
+            img.addEventListener('load', () => {
+                localStorage.removeItem('backgroundPreloading')
+                img.remove()
+                resolve(true)
+            })
+
+            img.src = src
+        })
+    }
+
+    if (media.format === 'video') {
+        const src = media.urls[resolution]
+        const video = document.createElement('video')
+
+        return new Promise((resolve) => {
+            video.addEventListener('canplaythrough', () => {
+                localStorage.removeItem('backgroundPreloading')
+                video.remove()
+                resolve(true)
+            })
+
+            // Wait the for applied video to continue buffering
+            setTimeout(() => video.src = src, 600)
+        })
+    }
+}
+
 function prepareBackgroundImageUrl(media: BackgroundImage, resolution: 'full' | 'small'): string {
     // disables blur compression for animated gifs (flawed since some gifs aren't animated)
     resolution = media.mimetype === 'image/gif' ? 'full' : resolution
@@ -780,7 +823,6 @@ function prepareBackgroundImageUrl(media: BackgroundImage, resolution: 'full' | 
             (frameMode === 'landscape' && !originalImageIsPortait)
 
         console.log({frameMode, originalImageIsPortait, shouldKeepOriginalRatio})
-        // l'image envoyée même si portrait est en landscape donc interprétée comme telle dans la suite
 
         if (shouldKeepOriginalRatio) {
             imageURL.searchParams.delete('w')
@@ -792,47 +834,6 @@ function prepareBackgroundImageUrl(media: BackgroundImage, resolution: 'full' | 
     console.info('image shown: ' + imageURL.href)
 
     return imageURL.href
-}
-
-function preloadBackground(media: Background | undefined, res?: BackgroundSize): void | Promise<unknown> {
-    if (!media) {
-        return
-    }
-
-    localStorage.setItem('backgroundPreloading', 'true')
-
-    const resolution = res ? res : detectBackgroundSize()
-    const src = media.urls[resolution]
-
-    if (media.format === 'image') {
-        const img = document.createElement('img')
-        img.fetchPriority = 'low'
-
-        return new Promise((resolve) => {
-            img.addEventListener('load', () => {
-                localStorage.removeItem('backgroundPreloading')
-                img.remove()
-                resolve(true)
-            })
-
-            img.src = src
-        })
-    }
-
-    if (media.format === 'video') {
-        const video = document.createElement('video')
-
-        return new Promise((resolve) => {
-            video.addEventListener('canplaythrough', () => {
-                localStorage.removeItem('backgroundPreloading')
-                video.remove()
-                resolve(true)
-            })
-
-            // Wait the for applied video to continue buffering
-            setTimeout(() => video.src = src, 600)
-        })
-    }
 }
 
 export function removeBackgrounds(): void {
