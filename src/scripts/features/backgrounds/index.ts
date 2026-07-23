@@ -641,7 +641,7 @@ function setCollection(backgrounds: Backgrounds, local: Local): CollectionSetRet
 
 export function applyBackground(media?: string | Background, res?: BackgroundSize, fast?: 'fast'): void {
     const mediaWrapper = document.getElementById('background-media') as HTMLDivElement
-    let resolution = res ? res : detectBackgroundSize()
+    const resolution = res ? res : detectBackgroundSize()
     let item: HTMLElement
 
     if (typeof media === 'string') {
@@ -699,7 +699,17 @@ function createImageItem(src: string, media: BackgroundImage, callback?: () => v
         // ⚠️ img.width != media.width · media is for the original uncropped dimensions
         
         div?.classList.toggle('pixelated', isPng && isSmall)
-        div?.classList.toggle('isPortrait', img.width < img.height)
+
+        let currentImageIsPortrait = img.width < img.height
+
+        // if unsplash, true ratio comes from media instead
+        if (media?.width && media?.height) {
+            currentImageIsPortrait = media.width < media.height
+        } 
+
+        div?.classList.toggle('isPortrait', currentImageIsPortrait)
+
+        // console.log(media)
 
         div.style.setProperty('--aspect-ratio', (img.width / img.height).toString())
 
@@ -770,6 +780,7 @@ function prepareBackgroundImageUrl(media: BackgroundImage, resolution: 'full' | 
             (frameMode === 'landscape' && !originalImageIsPortait)
 
         console.log({frameMode, originalImageIsPortait, shouldKeepOriginalRatio})
+        // l'image envoyée même si portrait est en landscape donc interprétée comme telle dans la suite
 
         if (shouldKeepOriginalRatio) {
             imageURL.searchParams.delete('w')
