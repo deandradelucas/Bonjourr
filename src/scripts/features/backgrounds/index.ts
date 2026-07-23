@@ -119,7 +119,7 @@ export async function backgroundUpdate(update: BackgroundUpdate): Promise<void> 
     const local = await storage.local.get()
 
     if (update.blurenter) {
-        blurResolutionControl(data, local)
+        reloadBackground(data, local)
         return
     }
 
@@ -176,10 +176,12 @@ export async function backgroundUpdate(update: BackgroundUpdate): Promise<void> 
     }
 
     if (update.frame) {
+        reloadBackground(data, local)
         data.backgrounds.frame = update.frame
         applyFrame(update.frame)
         
         storage.sync.set({ backgrounds: data.backgrounds })
+        return
     }
 
     if (update.refresh) {
@@ -1008,7 +1010,8 @@ function createProviderSelect(backgrounds: Backgrounds): void {
     }
 }
 
-async function blurResolutionControl(sync: Sync, local: Local): Promise<void> {
+// formerly blurResolutionControl()
+async function reloadBackground(sync: Sync, local: Local): Promise<void> {
     if (sync.backgrounds.type === 'files') {
         const ids = lastUsedBackgroundFiles(local.backgroundFiles)
         const image = await mediaFromFiles(ids[0], local)
