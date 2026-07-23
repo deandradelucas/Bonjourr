@@ -42,6 +42,8 @@ export interface BackgroundImage {
     urls: {
         full: string
         small: string
+        medium?: string
+        // used for frame mode
     }
     page?: string
     username?: string
@@ -50,6 +52,8 @@ export interface BackgroundImage {
     city?: string
     country?: string
     download?: string
+    width?: number
+    height?: number
     exif?: {
         make: string
         model: string

@@ -488,6 +488,7 @@ async function fetchNewBackgrounds(backgrounds: Backgrounds): Promise<Record<str
     const base = 'https://services.bonjourr.fr/backgrounds'
     const path = `/${provider}/${type}/${category}`
 
+    const frameMode = detectFrameMode()
     const density = Math.max(2, globalThis.devicePixelRatio)
     const ratio = globalThis.screen.width / globalThis.screen.height
     let height = globalThis.screen.height * density
@@ -502,10 +503,16 @@ async function fetchNewBackgrounds(backgrounds: Backgrounds): Promise<Record<str
 
     const screen = `?h=${height}&w=${width}`
 
+    // "any" isn't an Unsplash API thing but is understood by Bonjourr Services
+    const orientation = frameMode === "never" ? '' : '&orientation=any'
+
     const query = backgrounds.queries[collectionName] ?? ''
     const search = query ? `&query=${query}` : ''
 
-    const url = base + path + screen + search
+    const url = base + path + screen + search + orientation
+
+    console.info(`Backgrounds were fetched from ${url}`)
+
     const resp = await fetch(url)
     const json = await resp.json()
 
@@ -652,11 +659,9 @@ export function applyBackground(media?: string | Background, res?: BackgroundSiz
     }
 
     if (media.format === 'image') {
-        // disables blur compression for animated gifs (flawed since some gifs aren't animated)
-        resolution = media.mimetype === 'image/gif' ? 'full' : resolution
-        const src = media.urls[resolution]
-        item = createImageItem(src, media)
-        console.log(media)
+        item = createImageItem(
+            prepareBackgroundImageUrl(media, resolution),
+        media)
     } else {
         const fade = 4000 //ms
         const src = media.urls[resolution]
@@ -670,7 +675,7 @@ export function applyBackground(media?: string | Background, res?: BackgroundSiz
         const children = Object.values(mediaWrapper?.children)
         const notHiding = children.filter((child) => !child.className.includes('hiding'))
         const lastVisible = notHiding.at(-1)
-        console.log(fast)
+
         if (fast) {
             document.body.classList.remove('init')
             setTimeout(() => mediaWrapper?.lastElementChild?.remove(), 200)
@@ -690,14 +695,13 @@ function createImageItem(src: string, media: BackgroundImage, callback?: () => v
     img.addEventListener('load', () => {
         const isSmall = img.width <= 256 && img.height <= 256
         const isPng = !!media.mimetype?.includes('png')
+
+        // ⚠️ img.width != media.width · media is for the original uncropped dimensions
         
         div?.classList.toggle('pixelated', isPng && isSmall)
+        div?.classList.toggle('isPortrait', img.width < img.height)
 
-        // div?.classList.toggle('framed', imageIsPortrait)
-        div?.classList.toggle('portrait', img.width < img.height)
-
-        const aspectRatio = (img.width / img.height)
-        div.style.setProperty('--aspect-ratio', aspectRatio.toString())
+        div.style.setProperty('--aspect-ratio', (img.width / img.height).toString())
 
         backgroundsWrapper?.classList.remove('hidden')
         applyThemeColor(media, img)
@@ -748,6 +752,35 @@ function createVideoItem(src: string, media: BackgroundVideo, duration: number):
     backgroundsWrapper?.classList.remove('hidden')
 
     return container
+}
+
+function prepareBackgroundImageUrl(media: BackgroundImage, resolution: 'full' | 'small'): string {
+    // disables blur compression for animated gifs (flawed since some gifs aren't animated)
+    resolution = media.mimetype === 'image/gif' ? 'full' : resolution
+    const imageURL = new URL(media.urls[resolution])
+    const frameMode = detectFrameMode()
+    
+    // Unsplash images are cropped by default, so URL needs to be edited
+    // only unsplash images have media.dimensions
+    if (frameMode !== 'never' && media.width && media.height) {
+        const originalImageIsPortait = media.width < media.height
+        const shouldKeepOriginalRatio =
+            frameMode === 'always' ||
+            (frameMode === 'portrait' && originalImageIsPortait) ||
+            (frameMode === 'landscape' && !originalImageIsPortait)
+
+        console.log({frameMode, originalImageIsPortait, shouldKeepOriginalRatio})
+
+        if (shouldKeepOriginalRatio) {
+            imageURL.searchParams.delete('w')
+            imageURL.searchParams.delete('crop')
+            imageURL.searchParams.delete('fit')
+        }
+    }
+
+    console.info('image shown: ' + imageURL.href)
+
+    return imageURL.href
 }
 
 function preloadBackground(media: Background | undefined, res?: BackgroundSize): void | Promise<unknown> {
@@ -1021,6 +1054,12 @@ async function getCurrentBackgrounds(sync: Sync, local: Local): Promise<[Backgro
 
 function detectBackgroundSize(): 'full' | 'small' {
     return document.body.className.includes('blurred') ? 'small' : 'full'
+}
+
+function detectFrameMode(): Frame {
+    const framing = document.getElementById('background-wrapper')?.getAttribute('data-framing')
+
+    return ['always', 'portrait', 'landscape', 'never'].includes(framing as Frame) ? (framing as Frame) : 'never'
 }
 
 function applyThemeColor(image: BackgroundImage, img: HTMLImageElement): void {

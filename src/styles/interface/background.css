@@ -31,10 +31,10 @@
     image-rendering: pixelated;
 }
 
-#background-wrapper[data-framing="portrait"] .background-image.portrait,
-#background-wrapper[data-framing="landscape"] .background-image:not(.portrait),
-#background-wrapper[data-framing="always"] .background-image.portrait,
-#background-wrapper[data-framing="always"] .background-image:not(.portrait) {
+#background-wrapper[data-framing="portrait"] .background-image.isPortrait,
+#background-wrapper[data-framing="landscape"] .background-image:not(.isPortrait),
+#background-wrapper[data-framing="always"] .background-image,
+#background-wrapper[data-framing="always"] .background-image:not(.isPortrait) {
     transform: unset;
     position: absolute;
     height: auto;
@@ -46,14 +46,14 @@
     width: min(90vw, calc(90vh * var(--aspect-ratio)));
 }
 
-#background-wrapper[data-framing="portrait"] #background-media:has(.background-image.portrait) ~ #background-texture,
-#background-wrapper[data-framing="landscape"] #background-media:has(.background-image:not(.portrait)) ~ #background-texture,
+#background-wrapper[data-framing="portrait"] #background-media:has(.background-image.isPortrait) ~ #background-texture,
+#background-wrapper[data-framing="landscape"] #background-media:has(.background-image:not(.isPortrait)) ~ #background-texture,
 #background-wrapper[data-framing="always"] #background-media:has(.background-image) ~ #background-texture {
     z-index: 0;
 }
 
-#background-wrapper[data-framing="portrait"] #background-media:has(.background-image.portrait) .background-image,
-#background-wrapper[data-framing="landscape"] #background-media:has(.background-image:not(.portrait)) .background-image,
+#background-wrapper[data-framing="portrait"] #background-media:has(.background-image.isPortrait) .background-image,
+#background-wrapper[data-framing="landscape"] #background-media:has(.background-image:not(.isPortrait)) .background-image,
 #background-wrapper[data-framing="always"] #background-media .background-image {
     z-index: 1;
 }
