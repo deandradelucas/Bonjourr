@@ -694,6 +694,9 @@ function createImageItem(src: string, media: BackgroundImage, callback?: () => v
     const div = document.createElement('div')
     const img = new Image()
 
+    // necessary for getting the average color from some URLs, otherwise CORS issue
+    img.crossOrigin = 'anonymous'
+
     img.addEventListener('load', () => {
         const isSmall = img.width <= 256 && img.height <= 256
         const isPng = !!media.mimetype?.includes('png')
@@ -1150,7 +1153,8 @@ function getAverageColor(img: HTMLImageElement): undefined | string {
         // Output the average color in RGB format
         return rgbToHex(r, g, b)
     } catch (_error) {
-        //...
+        console.error("Bonjourr couldn't retrieve the average color for this image.")
+        // console.error(_error)
     }
 }
 
