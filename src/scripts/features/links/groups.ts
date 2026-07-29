@@ -75,7 +75,11 @@ function createGroups(data: Sync, local: Local): void {
             for (const link of getLinksInGroup(data, group)) {
                 if (isElem(link)) {
                     const url = getIconFromLinkElem(link)
+                    const iconWrapper = document.createElement('span')
                     const img = document.createElement('img')
+                    const label = document.createElement('span')
+
+                    iconWrapper.classList.add('link-title-icon')
                     img.alt = link.title ?? ''
                     img.title = link.title || link.url
                     img.draggable = false
@@ -86,7 +90,12 @@ function createGroups(data: Sync, local: Local): void {
                         event.stopPropagation()
                         globalThis.open(link.url, data.linknewtab ? '_blank' : '_self')
                     })
-                    iconsWrapper.appendChild(img)
+
+                    label.classList.add('link-title-icon-name')
+                    label.textContent = link.title || link.url
+
+                    iconWrapper.append(img, label)
+                    iconsWrapper.appendChild(iconWrapper)
                 }
             }
 
