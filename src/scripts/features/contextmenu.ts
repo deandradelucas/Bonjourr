@@ -261,6 +261,12 @@ queueMicrotask(() => {
         }
     })
 
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && domdialog.open) {
+            closeContextMenu()
+        }
+    })
+
     // closes context menu when moving to other tab/window
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {

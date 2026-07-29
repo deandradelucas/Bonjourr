@@ -365,8 +365,11 @@ function submitChanges(event: SubmitEvent): void {
     if (change === 'edit-delete') {
         if (target.title && !target.favicon) {
             quickLinks(undefined, { deleteGroup: group })
-        } else {
+        } else if (!target.favicon || globalThis.confirm(tradThis('Remove this favorite?'))) {
             quickLinks(undefined, { deleteLinks: selected })
+        } else {
+            event.preventDefault()
+            return
         }
     }
 

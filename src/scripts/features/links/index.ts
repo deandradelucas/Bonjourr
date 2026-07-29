@@ -743,6 +743,7 @@ function moveLinks(ids: string[], data: Sync): Sync {
     })
 
     initblocks(data)
+    initGroups(data)
     return data
 }
 

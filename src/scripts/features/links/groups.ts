@@ -14,6 +14,18 @@ import type { Local } from '../../../types/local.ts'
 
 const domlinkblocks = document.getElementById('linkblocks') as HTMLDivElement
 
+// Single delegated listener for every group menu, instead of one per bubble:
+// bubbles get torn down and recreated by initGroups often, and a per-instance
+// listener would either leak (never removed) or need careful teardown.
+document.addEventListener('click', (event) => {
+    for (const wrapper of document.querySelectorAll<HTMLElement>('.group-controls.expanded')) {
+        if (!wrapper.contains(event.target as Node)) {
+            wrapper.classList.remove('expanded')
+            expandedGroupMenus.delete(wrapper.closest<HTMLElement>('.link-title')?.dataset.group ?? '')
+        }
+    }
+})
+
 function onLinkMiniWheel(event: Event): void {
     changeGroup(event)
     event.preventDefault()
@@ -98,7 +110,7 @@ function createGroups(data: Sync, local: Local): void {
                             return
                         }
 
-                        startFavoriteDrag(event as PointerEvent, iconWrapper, link._id)
+                        startFavoriteDrag(event as PointerEvent, iconWrapper, link._id, group)
                     })
                     img.addEventListener('click', (event) => {
                         event.stopPropagation()
@@ -156,9 +168,17 @@ const MORE_ICON =
 // the user actually owns links in).
 const RESERVED_GROUPS = new Set(['topsites'])
 
+// Which group menus are expanded, kept in memory only (not synced): bubbles
+// get torn down and recreated by initGroups on almost every action, and
+// re-collapsing the menu each time would undo whatever the user just opened
+// it for. Resets on page reload, unlike the rest of the group appearance
+// state, which is intentional here (a stale "always open" menu isn't wanted).
+const expandedGroupMenus = new Set<string>()
+
 function createGroupControls(group: string): HTMLSpanElement {
     const wrapper = document.createElement('span')
     wrapper.classList.add('group-controls')
+    wrapper.classList.toggle('expanded', expandedGroupMenus.has(group))
 
     const toggle = document.createElement('button')
     toggle.type = 'button'
@@ -231,16 +251,19 @@ function createGroupControls(group: string): HTMLSpanElement {
         const isOpen = wrapper.classList.toggle('expanded')
 
         if (isOpen) {
-            document.addEventListener('click', closeOnOutsideClick)
+            // only one group menu open at a time
+            for (const other of document.querySelectorAll<HTMLElement>('.group-controls.expanded')) {
+                if (other !== wrapper) {
+                    other.classList.remove('expanded')
+                    expandedGroupMenus.delete(other.closest<HTMLElement>('.link-title')?.dataset.group ?? '')
+                }
+            }
+
+            expandedGroupMenus.add(group)
+        } else {
+            expandedGroupMenus.delete(group)
         }
     })
-
-    function closeOnOutsideClick(event: MouseEvent): void {
-        if (!wrapper.contains(event.target as Node)) {
-            wrapper.classList.remove('expanded')
-            document.removeEventListener('click', closeOnOutsideClick)
-        }
-    }
 
     wrapper.append(drag, toggle, actions)
 
@@ -469,13 +492,16 @@ export async function togglePinGroup(group: string, action: 'pin' | 'unpin'): Pr
 // link to that group (small self-contained drag, separate from drag.ts's
 // li/button based system which doesn't apply to these icons).
 
-function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId: string): void {
+function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId: string, group: string): void {
     const startX = event.clientX
     const startY = event.clientY
     const precision = event.pointerType === 'touch' ? 10 : 6
+    const iconsWrapper = iconWrapper.parentElement as HTMLElement
 
     let dragging = false
     let currentTarget: HTMLButtonElement | null = null
+    let reorderTarget: HTMLElement | null = null
+    let reorderBefore = true
 
     document.addEventListener('pointermove', move)
     document.addEventListener('pointerup', up)
@@ -489,39 +515,79 @@ function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId
             iconWrapper.classList.add('dragging-favorite')
         }
 
-        const sourceButton = iconWrapper.closest<HTMLButtonElement>('.link-title[data-group]')
-        const groupButtons = document.querySelectorAll<HTMLButtonElement>('.link-title[data-group]:not(.add-group)')
+        reorderTarget?.classList.remove('reorder-before', 'reorder-after')
+        reorderTarget = null
 
-        currentTarget?.classList.remove('drop-target')
-        currentTarget = null
-
-        for (const groupButton of groupButtons) {
-            if (groupButton === sourceButton) {
+        for (const sibling of iconsWrapper.querySelectorAll<HTMLElement>('.link-title-icon')) {
+            if (sibling === iconWrapper) {
                 continue
             }
 
-            const rect = groupButton.getBoundingClientRect()
+            const rect = sibling.getBoundingClientRect()
             const isOver = e.clientX >= rect.left && e.clientX <= rect.right
                 && e.clientY >= rect.top && e.clientY <= rect.bottom
 
             if (isOver) {
-                currentTarget = groupButton
-                currentTarget.classList.add('drop-target')
+                reorderTarget = sibling
+                reorderBefore = e.clientX < rect.left + rect.width / 2
+                reorderTarget.classList.add(reorderBefore ? 'reorder-before' : 'reorder-after')
                 break
+            }
+        }
+
+        currentTarget?.classList.remove('drop-target')
+        currentTarget = null
+
+        // only look for a different bubble to drop into when not reordering
+        // within the current one
+        if (!reorderTarget) {
+            const sourceButton = iconWrapper.closest<HTMLButtonElement>('.link-title[data-group]')
+            const groupButtons = document.querySelectorAll<HTMLButtonElement>(
+                '.link-title[data-group]:not(.add-group)',
+            )
+
+            for (const groupButton of groupButtons) {
+                if (groupButton === sourceButton) {
+                    continue
+                }
+
+                const rect = groupButton.getBoundingClientRect()
+                const isOver = e.clientX >= rect.left && e.clientX <= rect.right
+                    && e.clientY >= rect.top && e.clientY <= rect.bottom
+
+                if (isOver) {
+                    currentTarget = groupButton
+                    currentTarget.classList.add('drop-target')
+                    break
+                }
             }
         }
     }
 
-    function up(): void {
+    async function up(): Promise<void> {
         document.removeEventListener('pointermove', move)
         document.removeEventListener('pointerup', up)
 
         iconWrapper.classList.remove('dragging-favorite')
         currentTarget?.classList.remove('drop-target')
+        reorderTarget?.classList.remove('reorder-before', 'reorder-after')
 
         const target = currentTarget?.dataset.group
+        const targetId = reorderTarget?.dataset.linkId ?? ''
 
-        if (target) {
+        if (reorderTarget && targetId) {
+            // built from stored links, not the DOM icons: the bubble only
+            // renders elem links, so a DOM-derived list would silently drop
+            // any folder in the group and scramble its order value
+            const data = await storage.sync.get()
+            const ids = getLinksInGroup(data, group).map((l) => l._id).filter((id) => id !== linkId)
+            const targetIndex = ids.indexOf(targetId)
+
+            if (targetIndex !== -1) {
+                ids.splice(reorderBefore ? targetIndex : targetIndex + 1, 0, linkId)
+                linksUpdate({ moveLinks: ids })
+            }
+        } else if (target) {
             linksUpdate({ moveToGroup: { ids: [linkId], target } })
         }
 
@@ -546,7 +612,7 @@ function bindExternalBookmarkDrop(button: HTMLButtonElement, group: string): voi
     button.addEventListener('dragenter', (event) => {
         if (isBookmarkDrag(event)) {
             event.preventDefault()
-            button.classList.add('drop-target')
+            button.classList.add('drop-target', 'drop-target-external')
         }
     })
 
@@ -558,12 +624,12 @@ function bindExternalBookmarkDrop(button: HTMLButtonElement, group: string): voi
 
     button.addEventListener('dragleave', (event) => {
         if (!button.contains(event.relatedTarget as Node)) {
-            button.classList.remove('drop-target')
+            button.classList.remove('drop-target', 'drop-target-external')
         }
     })
 
     button.addEventListener('drop', (event) => {
-        button.classList.remove('drop-target')
+        button.classList.remove('drop-target', 'drop-target-external')
 
         if (!isBookmarkDrag(event)) {
             return
