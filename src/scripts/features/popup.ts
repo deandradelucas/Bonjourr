@@ -235,25 +235,7 @@ export function interfacePopup(init?: PopupInit, event?: PopupUpdate): void {
         }
     }
 
-    // Reviews
-
-    if (init.review === -1) {
-        return
-    }
-
-    // careful: reviewCounter and init.review are not the same
-    const reviewCounter = getReviewCounter()
-
-    if (reviewCounter > 30) {
-        displayPopup('review')
-    }
-
-    // removes the review popup automatically after 200 tabs
-    if (reviewCounter > 200) {
-        closePopup()
-    }
-
-    localStorage.reviewCounter = reviewCounter + 1
+    // Reviews popup disabled
 }
 
 function displayPopup(type: 'review' | 'announce', showIcon = false): void {
