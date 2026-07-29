@@ -121,12 +121,9 @@ async function toggleGroupLock(group: string): Promise<void> {
 async function toggleGroupDark(group: string): Promise<void> {
     const data = await storage.sync.get()
     const darkBubbles = new Set(data.linkgroups.darkBubbles ?? [])
-    const transparentBubbles = new Set(data.linkgroups.transparentBubbles ?? [])
 
     darkBubbles.has(group) ? darkBubbles.delete(group) : darkBubbles.add(group)
-    transparentBubbles.delete(group)
     data.linkgroups.darkBubbles = [...darkBubbles]
-    data.linkgroups.transparentBubbles = [...transparentBubbles]
     storage.sync.set(data)
 
     const button = findGroupButton(group)
@@ -138,12 +135,9 @@ async function toggleGroupDark(group: string): Promise<void> {
 async function toggleGroupTransparent(group: string): Promise<void> {
     const data = await storage.sync.get()
     const transparentBubbles = new Set(data.linkgroups.transparentBubbles ?? [])
-    const darkBubbles = new Set(data.linkgroups.darkBubbles ?? [])
 
     transparentBubbles.has(group) ? transparentBubbles.delete(group) : transparentBubbles.add(group)
-    darkBubbles.delete(group)
     data.linkgroups.transparentBubbles = [...transparentBubbles]
-    data.linkgroups.darkBubbles = [...darkBubbles]
     storage.sync.set(data)
 
     const button = findGroupButton(group)

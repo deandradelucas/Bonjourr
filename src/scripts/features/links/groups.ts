@@ -154,8 +154,8 @@ function createGroupControls(): HTMLSpanElement {
     const transparent = document.createElement('button')
     transparent.type = 'button'
     transparent.classList.add('group-transparent')
-    transparent.title = tradThis('Toggle transparent bubble')
-    transparent.setAttribute('aria-label', tradThis('Toggle transparent bubble background'))
+    transparent.title = tradThis('Toggle transparent icons')
+    transparent.setAttribute('aria-label', tradThis('Toggle transparent favicon background'))
     transparent.innerHTML = TRANSPARENT_ICON
 
     wrapper.append(drag, lock, dark, shape, transparent)
