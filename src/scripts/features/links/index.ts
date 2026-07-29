@@ -754,6 +754,7 @@ function moveToGroup({ ids, target }: MoveToGroup, data: Sync): Sync {
     const correctdata = correctLinksOrder(data)
 
     initblocks(correctdata)
+    initGroups(correctdata)
     return correctdata
 }
 

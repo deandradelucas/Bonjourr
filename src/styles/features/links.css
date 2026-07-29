@@ -179,6 +179,16 @@
     transform: scale(1.12);
 }
 
+.link-title-icon.dragging-favorite {
+    opacity: 0.5;
+    z-index: 5;
+}
+
+.link-title.drop-target {
+    outline: 0.2em solid rgb(var(--accent-color));
+    outline-offset: 2px;
+}
+
 .link-title-icon-name {
     font-size: 0.7em;
     line-height: 1.2;
@@ -860,6 +870,7 @@
 
 .group-controls {
     display: flex;
+    align-items: center;
     gap: 0.3em;
     position: absolute;
     left: 50%;
@@ -874,11 +885,50 @@
     z-index: 1;
 }
 
+.group-controls-actions {
+    display: none;
+    align-items: center;
+    gap: 0.3em;
+}
+
+.group-controls.expanded .group-controls-actions {
+    display: flex;
+}
+
+.group-menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1em;
+    height: 2.1em;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background-color: rgb(255 255 255 / 0.15);
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.05em;
+    transition: background-color 0.15s, transform 0.15s;
+}
+
+.group-menu-toggle svg {
+    width: 1.1em;
+    height: 1.1em;
+    display: block;
+}
+
+.group-menu-toggle:hover,
+.group-controls.expanded .group-menu-toggle {
+    background-color: rgb(255 255 255 / 0.3);
+}
+
 .group-drag,
 .group-lock,
 .group-dark,
 .group-shape,
-.group-transparent {
+.group-transparent,
+.group-rename,
+.group-delete {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -898,7 +948,9 @@
 .group-lock svg,
 .group-dark svg,
 .group-shape svg,
-.group-transparent svg {
+.group-transparent svg,
+.group-rename svg,
+.group-delete svg {
     width: 1.1em;
     height: 1.1em;
     display: block;
@@ -908,9 +960,22 @@
 .group-lock:hover,
 .group-dark:hover,
 .group-shape:hover,
-.group-transparent:hover {
+.group-transparent:hover,
+.group-rename:hover {
     background-color: rgb(255 255 255 / 0.3);
     transform: scale(1.1);
+}
+
+.group-delete:hover {
+    background-color: rgb(220 50 50 / 0.6);
+    transform: scale(1.1);
+}
+
+.link-title-text[contenteditable='true'] {
+    outline: 1px dashed rgb(255 255 255 / 0.6);
+    outline-offset: 2px;
+    border-radius: 3px;
+    cursor: text;
 }
 
 .link-title.icons-grid .link-title-icons {

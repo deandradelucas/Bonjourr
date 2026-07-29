@@ -1,4 +1,6 @@
 import { storage } from '../../storage.ts'
+import { linksUpdate } from './index.ts'
+import { tradThis } from '../../utils/translations.ts'
 
 import type { Sync } from '../../../types/sync.ts'
 
@@ -58,6 +60,8 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
     const darkBtn = button.querySelector<HTMLElement>('.group-dark')
     const shapeBtn = button.querySelector<HTMLElement>('.group-shape')
     const transparentBtn = button.querySelector<HTMLElement>('.group-transparent')
+    const renameBtn = button.querySelector<HTMLElement>('.group-rename')
+    const deleteBtn = button.querySelector<HTMLElement>('.group-delete')
 
     handle?.addEventListener('pointerdown', (event) => {
         event.stopPropagation()
@@ -65,7 +69,7 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
     })
     handle?.addEventListener('click', (event) => event.stopPropagation())
 
-    for (const ctrl of [lockBtn, darkBtn, shapeBtn, transparentBtn]) {
+    for (const ctrl of [lockBtn, darkBtn, shapeBtn, transparentBtn, renameBtn, deleteBtn]) {
         ctrl?.addEventListener('pointerdown', (event) => event.stopPropagation())
     }
 
@@ -88,6 +92,61 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
         event.stopPropagation()
         toggleGroupTransparent(group)
     })
+
+    renameBtn?.addEventListener('click', (event) => {
+        event.stopPropagation()
+        startGroupRename(button, group)
+    })
+
+    deleteBtn?.addEventListener('click', (event) => {
+        event.stopPropagation()
+
+        if (globalThis.confirm(tradThis('Delete this group and all its links?'))) {
+            linksUpdate({ deleteGroup: group })
+        }
+    })
+}
+
+function startGroupRename(button: HTMLButtonElement, group: string): void {
+    const textSpan = button.querySelector<HTMLSpanElement>('.link-title-text')
+
+    if (!textSpan || textSpan.isContentEditable) {
+        return
+    }
+
+    textSpan.contentEditable = 'true'
+    textSpan.spellcheck = false
+    textSpan.focus()
+    document.execCommand('selectAll', false)
+
+    textSpan.addEventListener('pointerdown', (event) => event.stopPropagation())
+    textSpan.addEventListener('click', (event) => event.stopPropagation())
+
+    textSpan.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault()
+            textSpan.blur()
+        }
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            textSpan.textContent = group
+            textSpan.blur()
+        }
+    })
+
+    textSpan.addEventListener('blur', commit, { once: true })
+
+    function commit(): void {
+        textSpan.contentEditable = 'false'
+
+        const newTitle = textSpan.textContent?.trim() ?? ''
+
+        if (newTitle && newTitle !== group) {
+            linksUpdate({ groupTitle: { old: group, new: newTitle } })
+        } else {
+            textSpan.textContent = group
+        }
+    }
 }
 
 async function toggleGroupShape(group: string): Promise<void> {

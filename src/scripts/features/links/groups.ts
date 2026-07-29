@@ -1,4 +1,4 @@
-import { getIconFromLinkElem } from './index.ts'
+import { getIconFromLinkElem, linksUpdate } from './index.ts'
 import { getLinksInGroup, isElem } from './helpers.ts'
 import { openContextMenu } from '../contextmenu.ts'
 import { initblocks } from './index.ts'
@@ -80,14 +80,24 @@ function createGroups(data: Sync, local: Local): void {
                     const label = document.createElement('span')
 
                     iconWrapper.classList.add('link-title-icon')
+                    iconWrapper.dataset.linkId = link._id
                     img.alt = link.title ?? ''
                     img.title = link.title || link.url
                     img.draggable = false
                     img.loading = 'lazy'
                     img.src = url.startsWith('link') ? (local[`x-icon-${url}`] ?? '') : url
-                    img.addEventListener('pointerdown', (event) => event.stopPropagation())
+                    img.addEventListener('pointerdown', (event) => {
+                        event.stopPropagation()
+                        startFavoriteDrag(event as PointerEvent, iconWrapper, link._id)
+                    })
                     img.addEventListener('click', (event) => {
                         event.stopPropagation()
+
+                        if (iconWrapper.classList.contains('was-dragged')) {
+                            iconWrapper.classList.remove('was-dragged')
+                            return
+                        }
+
                         globalThis.open(link.url, data.linknewtab ? '_blank' : '_self')
                     })
 
@@ -99,7 +109,7 @@ function createGroups(data: Sync, local: Local): void {
                 }
             }
 
-            button.appendChild(createGroupControls())
+            button.appendChild(createGroupControls(group))
         }
 
         button.appendChild(iconsWrapper)
@@ -128,9 +138,32 @@ const GRID_ICON =
 const TRANSPARENT_ICON =
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" width="1em" height="1em"><rect x="2" y="2" width="12" height="12" rx="2" stroke-dasharray="2.2 1.8"/></svg>'
 
-function createGroupControls(): HTMLSpanElement {
+const EDIT_ICON =
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" width="1em" height="1em"><path d="M11.5 2.5a1.4 1.4 0 0 1 2 2L5 13l-3 1 1-3z"/></svg>'
+
+const TRASH_ICON =
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" width="1em" height="1em"><path d="M3 4h10M6.5 4V2.8a.8.8 0 0 1 .8-.8h1.4a.8.8 0 0 1 .8.8V4M4.5 4l.6 9a1 1 0 0 0 1 .9h3.8a1 1 0 0 0 1-.9l.6-9"/></svg>'
+
+const MORE_ICON =
+    '<svg viewBox="0 0 16 16" fill="currentColor" width="1em" height="1em"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg>'
+
+// Renaming or deleting these special groups would break logic elsewhere
+// that keys off their literal name (default group, virtual topsites group).
+const RESERVED_GROUPS = new Set(['default', 'topsites'])
+
+function createGroupControls(group: string): HTMLSpanElement {
     const wrapper = document.createElement('span')
     wrapper.classList.add('group-controls')
+
+    const toggle = document.createElement('button')
+    toggle.type = 'button'
+    toggle.classList.add('group-menu-toggle')
+    toggle.title = tradThis('Group options')
+    toggle.setAttribute('aria-label', tradThis('Open group options'))
+    toggle.innerHTML = MORE_ICON
+
+    const actions = document.createElement('span')
+    actions.classList.add('group-controls-actions')
 
     const drag = document.createElement('button')
     drag.type = 'button'
@@ -167,7 +200,44 @@ function createGroupControls(): HTMLSpanElement {
     transparent.setAttribute('aria-label', tradThis('Toggle transparent favicon background'))
     transparent.innerHTML = TRANSPARENT_ICON
 
-    wrapper.append(drag, lock, dark, shape, transparent)
+    actions.append(drag, lock, dark, shape, transparent)
+
+    if (!RESERVED_GROUPS.has(group)) {
+        const rename = document.createElement('button')
+        rename.type = 'button'
+        rename.classList.add('group-rename')
+        rename.title = tradThis('Rename group')
+        rename.setAttribute('aria-label', tradThis('Rename group'))
+        rename.innerHTML = EDIT_ICON
+
+        const del = document.createElement('button')
+        del.type = 'button'
+        del.classList.add('group-delete')
+        del.title = tradThis('Delete group')
+        del.setAttribute('aria-label', tradThis('Delete group'))
+        del.innerHTML = TRASH_ICON
+
+        actions.append(rename, del)
+    }
+
+    toggle.addEventListener('pointerdown', (event) => event.stopPropagation())
+    toggle.addEventListener('click', (event) => {
+        event.stopPropagation()
+        const isOpen = wrapper.classList.toggle('expanded')
+
+        if (isOpen) {
+            document.addEventListener('click', closeOnOutsideClick)
+        }
+    })
+
+    function closeOnOutsideClick(event: MouseEvent): void {
+        if (!wrapper.contains(event.target as Node)) {
+            wrapper.classList.remove('expanded')
+            document.removeEventListener('click', closeOnOutsideClick)
+        }
+    }
+
+    wrapper.append(toggle, actions)
 
     return wrapper
 }
@@ -247,8 +317,57 @@ export function changeGroupTitle(title: { old: string; new: string }, data: Sync
 
     data.linkgroups.groups[index] = title.new
     data.linkgroups.selected = title.new
+    renameGroupAppearanceState(data, title.old, title.new)
     initGroups(data)
     return data
+}
+
+// Per-group appearance state (position, lock, dark/transparent bubble, icons
+// layout) is keyed by group name, so it has to follow renames and be cleaned
+// up on delete or it silently desyncs from the group it was set for.
+
+function renameGroupAppearanceState(data: Sync, oldName: string, newName: string): void {
+    const { positions, locked, darkBubbles, transparentBubbles, iconsLayouts } = data.linkgroups
+
+    if (positions && oldName in positions) {
+        const { [oldName]: value, ...rest } = positions
+        data.linkgroups.positions = { ...rest, [newName]: value }
+    }
+    if (iconsLayouts && oldName in iconsLayouts) {
+        const { [oldName]: value, ...rest } = iconsLayouts
+        data.linkgroups.iconsLayouts = { ...rest, [newName]: value }
+    }
+    if (locked?.includes(oldName)) {
+        data.linkgroups.locked = [...locked.filter((g) => g !== oldName), newName]
+    }
+    if (darkBubbles?.includes(oldName)) {
+        data.linkgroups.darkBubbles = [...darkBubbles.filter((g) => g !== oldName), newName]
+    }
+    if (transparentBubbles?.includes(oldName)) {
+        data.linkgroups.transparentBubbles = [...transparentBubbles.filter((g) => g !== oldName), newName]
+    }
+}
+
+function deleteGroupAppearanceState(data: Sync, group: string): void {
+    const { positions, iconsLayouts, locked, darkBubbles, transparentBubbles } = data.linkgroups
+
+    if (positions && group in positions) {
+        const { [group]: _removed, ...rest } = positions
+        data.linkgroups.positions = rest
+    }
+    if (iconsLayouts && group in iconsLayouts) {
+        const { [group]: _removed, ...rest } = iconsLayouts
+        data.linkgroups.iconsLayouts = rest
+    }
+    if (locked) {
+        data.linkgroups.locked = locked.filter((g) => g !== group)
+    }
+    if (darkBubbles) {
+        data.linkgroups.darkBubbles = darkBubbles.filter((g) => g !== group)
+    }
+    if (transparentBubbles) {
+        data.linkgroups.transparentBubbles = transparentBubbles.filter((g) => g !== group)
+    }
 }
 
 export function addGroup(groups: { title: string; sync?: boolean }[], data: Sync): Sync {
@@ -298,6 +417,7 @@ export function deleteGroup(group: string, data: Sync): Sync {
     data.linkgroups.pinned = pinned.filter((p) => p !== group)
     data.linkgroups.synced = synced.filter((g) => g !== group)
     data.linkgroups.groups = groups.filter((g) => g !== group)
+    deleteGroupAppearanceState(data, group)
 
     if (groups.length === 2) {
         data.linkgroups.pinned = []
@@ -338,4 +458,70 @@ export async function togglePinGroup(group: string, action: 'pin' | 'unpin'): Pr
 
     initblocks(data)
     initGroups(data)
+}
+
+// Dragging a favicon out of its group bubble and onto another one moves the
+// link to that group (small self-contained drag, separate from drag.ts's
+// li/button based system which doesn't apply to these icons).
+
+function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId: string): void {
+    const startX = event.clientX
+    const startY = event.clientY
+    const precision = event.pointerType === 'touch' ? 10 : 6
+
+    let dragging = false
+    let currentTarget: HTMLButtonElement | null = null
+
+    document.addEventListener('pointermove', move)
+    document.addEventListener('pointerup', up)
+
+    function move(e: PointerEvent): void {
+        if (!dragging) {
+            if (Math.abs(e.clientX - startX) < precision && Math.abs(e.clientY - startY) < precision) {
+                return
+            }
+            dragging = true
+            iconWrapper.classList.add('was-dragged', 'dragging-favorite')
+        }
+
+        const sourceButton = iconWrapper.closest<HTMLButtonElement>('.link-title[data-group]')
+        const groupButtons = document.querySelectorAll<HTMLButtonElement>('.link-title[data-group]:not(.add-group)')
+
+        currentTarget?.classList.remove('drop-target')
+        currentTarget = null
+
+        for (const groupButton of groupButtons) {
+            if (groupButton === sourceButton) {
+                continue
+            }
+
+            const rect = groupButton.getBoundingClientRect()
+            const isOver = e.clientX >= rect.left && e.clientX <= rect.right
+                && e.clientY >= rect.top && e.clientY <= rect.bottom
+
+            if (isOver) {
+                currentTarget = groupButton
+                currentTarget.classList.add('drop-target')
+                break
+            }
+        }
+    }
+
+    function up(): void {
+        document.removeEventListener('pointermove', move)
+        document.removeEventListener('pointerup', up)
+
+        iconWrapper.classList.remove('dragging-favorite')
+        currentTarget?.classList.remove('drop-target')
+
+        const target = currentTarget?.dataset.group
+
+        if (target) {
+            linksUpdate({ moveToGroup: { ids: [linkId], target } })
+        }
+
+        if (!dragging) {
+            iconWrapper.classList.remove('was-dragged')
+        }
+    }
 }
