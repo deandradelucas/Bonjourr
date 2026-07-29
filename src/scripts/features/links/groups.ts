@@ -75,6 +75,7 @@ function createGroups(data: Sync, local: Local): void {
         } else {
             button.addEventListener('click', changeGroup)
             button.addEventListener('pointerdown', startDrag)
+            bindExternalBookmarkDrop(button, group)
 
             for (const link of getLinksInGroup(data, group)) {
                 if (isElem(link)) {
@@ -145,9 +146,10 @@ const TRASH_ICON =
 const MORE_ICON =
     '<svg viewBox="0 0 16 16" fill="currentColor" width="1em" height="1em"><circle cx="3" cy="8" r="1.4"/><circle cx="8" cy="8" r="1.4"/><circle cx="13" cy="8" r="1.4"/></svg>'
 
-// Renaming or deleting these special groups would break logic elsewhere
-// that keys off their literal name (default group, virtual topsites group).
-const RESERVED_GROUPS = new Set(['default', 'topsites'])
+// Renaming or deleting "topsites" would break logic elsewhere that keys
+// off that literal name (it's a virtual, browser-generated group, not one
+// the user actually owns links in).
+const RESERVED_GROUPS = new Set(['topsites'])
 
 function createGroupControls(group: string): HTMLSpanElement {
     const wrapper = document.createElement('span')
@@ -529,4 +531,58 @@ function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId
         e.stopPropagation()
         e.preventDefault()
     }
+}
+
+// Lets a bookmark dragged from the browser's own bookmarks bar (native HTML5
+// drag, not our pointer-based one) be dropped straight onto a group bubble
+// to get added as a new link there.
+
+function bindExternalBookmarkDrop(button: HTMLButtonElement, group: string): void {
+    button.addEventListener('dragenter', (event) => {
+        if (isBookmarkDrag(event)) {
+            event.preventDefault()
+            button.classList.add('drop-target')
+        }
+    })
+
+    button.addEventListener('dragover', (event) => {
+        if (isBookmarkDrag(event)) {
+            event.preventDefault()
+        }
+    })
+
+    button.addEventListener('dragleave', (event) => {
+        if (!button.contains(event.relatedTarget as Node)) {
+            button.classList.remove('drop-target')
+        }
+    })
+
+    button.addEventListener('drop', (event) => {
+        button.classList.remove('drop-target')
+
+        if (!isBookmarkDrag(event)) {
+            return
+        }
+
+        event.preventDefault()
+
+        const { url, title } = getBookmarkFromDrag(event)
+
+        if (url) {
+            linksUpdate({ addLinks: [{ title: title || url, url, group }] })
+        }
+    })
+}
+
+function isBookmarkDrag(event: DragEvent): boolean {
+    return !!event.dataTransfer?.types.includes('text/uri-list')
+}
+
+function getBookmarkFromDrag(event: DragEvent): { url: string; title: string } {
+    const dataTransfer = event.dataTransfer
+    const url = dataTransfer?.getData('text/uri-list') || dataTransfer?.getData('text/plain') || ''
+    const html = dataTransfer?.getData('text/html') ?? ''
+    const titleMatch = html.match(/<a[^>]*>([^<]*)<\/a>/i)
+
+    return { url, title: titleMatch?.[1]?.trim() ?? '' }
 }

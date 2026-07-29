@@ -541,6 +541,7 @@ function linkSubmission(args: SubmitLink | SubmitFolder, data: Sync): Sync {
     storage.local.get().then((local) => {
         initblocks(newsync, local)
     })
+    initGroups(newsync)
 
     return newsync
 }
