@@ -69,7 +69,7 @@ export function startDrag(event: PointerEvent): void {
     domlinkgroup = path.find((node) => node?.classList?.contains('link-group')) as HTMLDivElement
     domlinkgroups = document.querySelectorAll<HTMLDivElement>('#linkblocks .link-group')
     domlinklinks = document.querySelectorAll<HTMLLIElement>('#linkblocks li')
-    domlinktitles = document.querySelectorAll<HTMLButtonElement>('#link-mini button')
+    domlinktitles = document.querySelectorAll<HTMLButtonElement>('#link-mini button.link-title')
     dragContainers = document.querySelectorAll<HTMLElement>(isMini ? '#link-mini' : '.link-group')
 
     const tagName = isMini ? 'BUTTON' : 'LI'

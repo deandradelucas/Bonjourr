@@ -121,32 +121,35 @@
 /* Link titles */
 
 .link-title {
+    position: relative;
     display: none;
+    flex-direction: column;
     align-items: center;
-    gap: 0.4em;
-    max-width: 26ch;
-    padding: 0.2em 1em;
-    overflow: hidden;
-    white-space: nowrap;
+    justify-content: center;
+    gap: 0.35em;
+    max-width: none;
+    padding: 0.6em 1em;
+    white-space: normal;
     text-align: center;
-    text-overflow: ellipsis;
-    opacity: 0.7;
+    opacity: 0.85;
     color: var(--font-color);
     font-size: 1em;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    background-color: transparent;
+    border-radius: 14px;
+    border: 1px solid #fff1;
+    background-color: #fff1;
+    backdrop-filter: blur(1.5em);
+    -webkit-backdrop-filter: blur(1.5em);
     cursor: pointer;
-    transition: transform 0.2s var(--in-out-bounce);
+    transition: transform 0.2s var(--in-out-bounce), opacity 0.15s, background-color 0.15s;
 }
 
 .link-title-icons {
-    display: inline-flex;
+    display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 0.3em;
-    flex-shrink: 0;
+    max-width: 14em;
 }
 
 .link-title-icons:empty {
@@ -154,43 +157,36 @@
 }
 
 .link-title-icons img {
-    width: var(--icon-size);
-    height: var(--icon-size);
+    width: 3.2em;
+    height: 3.2em;
     border-radius: 50%;
     object-fit: cover;
-    background-color: #fff2;
-    box-shadow: 0 0 0 1px #fff2;
+    background-color: #fff;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.35);
+    cursor: pointer;
+    transition: transform 0.15s var(--out-cubic);
 }
 
-/* Icons layout: grid — fixed columns instead of free wrap */
-#link-mini.icons-grid .link-title-icons {
-    display: grid;
-    grid-template-columns: repeat(4, var(--icon-size));
-    justify-content: center;
+.link-title-icons img:hover {
+    transform: scale(1.12);
 }
 
-/* Icons layout: stack — overlapping circles, like avatar stacks */
-#link-mini.icons-stack .link-title-icons img {
-    margin-left: calc(var(--icon-size) * -0.4);
-}
-
-#link-mini.icons-stack .link-title-icons img:first-child {
-    margin-left: 0;
+/* Favorites now live inside their group bubble; the full-size rows are
+   redundant and hidden, including pinned groups. */
+.with-groups #linkblocks > .link-group {
+    display: none;
 }
 
 .link-title-text {
+    max-width: 20ch;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
 }
 
-.link-group .link-title {
-    max-width: 100%;
-}
-
 .with-groups .link-group.pinned .link-title,
 .link-group.in-folder .link-title {
-    display: inline-flex;
+    display: flex;
 }
 
 .link-title:hover {
@@ -826,55 +822,96 @@
     padding-right: 4em;
 }
 
-#link-mini.free-position {
+/* Each group bubble can be freely and independently positioned, locked, and
+   set to a dark/mirrored theme via its own .group-controls (see position.ts) */
+
+.link-title.free-position {
     position: fixed;
-    left: var(--pos-x, 50%);
+    left: var(--pos-x, auto);
     top: var(--pos-y, auto);
-    width: max-content;
-    max-width: 90vw;
-    padding-right: 0;
     z-index: 20;
 }
 
-#link-mini.dragging-position {
+.link-title.dragging-position {
     transition: none;
     cursor: grabbing;
     user-select: none;
 }
 
-#link-mini-controls {
-    display: none;
-    gap: 0.4em;
-    justify-content: center;
-    margin-top: 0.4em;
-}
-
-.with-groups #link-mini:hover #link-mini-controls,
-.with-groups #link-mini.dragging-position #link-mini-controls {
+.group-controls {
     display: flex;
+    gap: 0.3em;
+    position: absolute;
+    left: 50%;
+    top: -2.6em;
+    transform: translateX(-50%);
+    padding: 0.25em;
+    border-radius: 999px;
+    background-color: rgb(0 0 0 / 0.4);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.25);
+    backdrop-filter: blur(1.2em);
+    -webkit-backdrop-filter: blur(1.2em);
+    z-index: 1;
 }
 
-.link-mini-handle {
-    width: 1.8em;
-    height: 1.8em;
+.group-drag,
+.group-lock,
+.group-dark,
+.group-shape {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1em;
+    height: 2.1em;
     padding: 0;
     border-radius: 50%;
     border: none;
-    background-color: #fff2;
-    color: var(--font-color);
+    background-color: rgb(255 255 255 / 0.15);
+    color: #fff;
     cursor: pointer;
-    line-height: 1;
-    font-size: 0.9em;
+    font-size: 1.05em;
+    transition: background-color 0.15s, transform 0.15s;
 }
 
-#link-mini-drag {
+.group-drag svg,
+.group-lock svg,
+.group-dark svg,
+.group-shape svg {
+    width: 1.1em;
+    height: 1.1em;
+    display: block;
+}
+
+.group-drag:hover,
+.group-lock:hover,
+.group-dark:hover,
+.group-shape:hover {
+    background-color: rgb(255 255 255 / 0.3);
+    transform: scale(1.1);
+}
+
+.link-title.icons-grid .link-title-icons {
+    display: grid;
+    grid-template-columns: repeat(4, 3.2em);
+    justify-content: center;
+}
+
+.group-drag {
     cursor: grab;
     touch-action: none;
 }
 
-#link-mini.position-locked #link-mini-drag {
+.link-title.position-locked .group-drag {
     cursor: not-allowed;
     opacity: 0.4;
+}
+
+.link-title.dark-bubble {
+    color: #fff;
+    background-color: rgb(10 10 14 / 0.55);
+    border-color: rgb(255 255 255 / 0.08);
+    backdrop-filter: blur(2em) brightness(0.6);
+    -webkit-backdrop-filter: blur(2em) brightness(0.6);
 }
 
 #link-mini > div {
@@ -889,9 +926,7 @@
 }
 
 #link-mini .link-title {
-    display: inline-flex;
-    max-width: none;
-    white-space: normal;
+    display: flex;
 }
 
 #link-mini .add-group {

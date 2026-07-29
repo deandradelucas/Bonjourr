@@ -3,7 +3,7 @@ import { getLinksInGroup, isElem } from './helpers.ts'
 import { openContextMenu } from '../contextmenu.ts'
 import { initblocks } from './index.ts'
 import { startDrag } from './drag.ts'
-import { applyGroupPosition, initGroupPositionEvents } from './position.ts'
+import { applyGroupAppearance, bindGroupControls, UNLOCK_ICON } from './position.ts'
 
 import { transitioner } from '../../utils/transitioner.ts'
 import { tradThis } from '../../utils/translations.ts'
@@ -13,7 +13,6 @@ import type { Sync } from '../../../types/sync.ts'
 import type { Local } from '../../../types/local.ts'
 
 const domlinkblocks = document.getElementById('linkblocks') as HTMLDivElement
-let positionEventsInitialized = false
 
 export async function initGroups(data: Sync, init?: true): Promise<void> {
     const local = await storage.local.get()
@@ -25,12 +24,6 @@ export async function initGroups(data: Sync, init?: true): Promise<void> {
     }
 
     createGroups(data, local)
-    applyGroupPosition(data)
-
-    if (!positionEventsInitialized) {
-        positionEventsInitialized = true
-        initGroupPositionEvents()
-    }
 
     // navigating through groups with scroll wheel
     document.querySelector('#link-mini')?.addEventListener('wheel', (event) => {
@@ -83,22 +76,81 @@ function createGroups(data: Sync, local: Local): void {
                 if (isElem(link)) {
                     const url = getIconFromLinkElem(link)
                     const img = document.createElement('img')
-                    img.alt = ''
+                    img.alt = link.title ?? ''
+                    img.title = link.title || link.url
                     img.draggable = false
                     img.loading = 'lazy'
                     img.src = url.startsWith('link') ? (local[`x-icon-${url}`] ?? '') : url
+                    img.addEventListener('pointerdown', (event) => event.stopPropagation())
+                    img.addEventListener('click', (event) => {
+                        event.stopPropagation()
+                        globalThis.open(link.url, data.linknewtab ? '_blank' : '_self')
+                    })
                     iconsWrapper.appendChild(img)
                 }
             }
+
+            button.appendChild(createGroupControls())
         }
 
         button.appendChild(iconsWrapper)
         button.appendChild(textSpan)
 
         document.querySelector('#link-mini div')?.appendChild(button)
+
+        if (!isAddMore) {
+            applyGroupAppearance(button, group, data)
+            bindGroupControls(button, group)
+        }
     }
 
     domlinkblocks?.classList.toggle('with-groups', data.linkgroups.on)
+}
+
+const DRAG_ICON =
+    '<svg viewBox="0 0 16 16" fill="currentColor" width="1em" height="1em"><circle cx="5" cy="3" r="1.3"/><circle cx="11" cy="3" r="1.3"/><circle cx="5" cy="8" r="1.3"/><circle cx="11" cy="8" r="1.3"/><circle cx="5" cy="13" r="1.3"/><circle cx="11" cy="13" r="1.3"/></svg>'
+
+const MOON_ICON =
+    '<svg viewBox="0 0 16 16" fill="currentColor" width="1em" height="1em"><path d="M13 9.8A5.6 5.6 0 1 1 6.2 3a4.4 4.4 0 0 0 6.8 6.8z"/></svg>'
+
+const GRID_ICON =
+    '<svg viewBox="0 0 16 16" fill="currentColor" width="1em" height="1em"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>'
+
+function createGroupControls(): HTMLSpanElement {
+    const wrapper = document.createElement('span')
+    wrapper.classList.add('group-controls')
+
+    const drag = document.createElement('button')
+    drag.type = 'button'
+    drag.classList.add('group-drag')
+    drag.title = tradThis('Drag to reposition')
+    drag.setAttribute('aria-label', tradThis('Drag to reposition group'))
+    drag.innerHTML = DRAG_ICON
+
+    const lock = document.createElement('button')
+    lock.type = 'button'
+    lock.classList.add('group-lock')
+    lock.title = tradThis('Lock position')
+    lock.setAttribute('aria-label', tradThis('Lock group position'))
+    lock.innerHTML = UNLOCK_ICON
+
+    const dark = document.createElement('button')
+    dark.type = 'button'
+    dark.classList.add('group-dark')
+    dark.title = tradThis('Toggle dark bubble')
+    dark.setAttribute('aria-label', tradThis('Toggle dark bubble theme'))
+    dark.innerHTML = MOON_ICON
+
+    const shape = document.createElement('button')
+    shape.type = 'button'
+    shape.classList.add('group-shape')
+    shape.title = tradThis('Change icons layout')
+    shape.setAttribute('aria-label', tradThis('Change group icons layout'))
+    shape.innerHTML = GRID_ICON
+
+    wrapper.append(drag, lock, dark, shape)
+
+    return wrapper
 }
 
 function changeGroup(event: Event): void {

@@ -229,6 +229,7 @@ export function initblocks(sync: Sync, local?: Local): true {
         linkgroup.dataset.group = group.title
         linkgroup.classList.toggle('pinned', group.pinned)
         linkgroup.classList.toggle('synced', group.synced)
+        linkgroup.style.display = sync.linkgroups.on ? 'none' : ''
         linklist.appendChild(fragment)
         domlinkblocks.prepend(linkgroup)
 
