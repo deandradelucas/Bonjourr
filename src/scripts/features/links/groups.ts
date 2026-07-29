@@ -26,6 +26,40 @@ document.addEventListener('click', (event) => {
     }
 })
 
+// Keyboard navigation, delegated once on #link-mini (rebuilt often by
+// initGroups, so per-element listeners would need careful teardown):
+// Left/Right moves focus between group tabs, and between favicons inside
+// the currently focused bubble.
+document.getElementById('link-mini')?.addEventListener('keydown', (event) => {
+    const key = event.key
+
+    if (key !== 'ArrowLeft' && key !== 'ArrowRight') {
+        return
+    }
+
+    const target = event.target as HTMLElement
+    const icon = target.closest<HTMLElement>('.link-title-icon')
+
+    if (icon) {
+        const siblings = [...(icon.parentElement?.querySelectorAll<HTMLElement>('.link-title-icon') ?? [])]
+        const index = siblings.indexOf(icon)
+        const next = siblings[index + (key === 'ArrowRight' ? 1 : -1)]
+
+        next?.querySelector('img')?.focus()
+        event.preventDefault()
+        return
+    }
+
+    if (target.matches('.link-title')) {
+        const tabs = [...document.querySelectorAll<HTMLElement>('.link-title')]
+        const index = tabs.indexOf(target)
+        const next = tabs[index + (key === 'ArrowRight' ? 1 : -1)]
+
+        next?.focus()
+        event.preventDefault()
+    }
+})
+
 function onLinkMiniWheel(event: Event): void {
     changeGroup(event)
     event.preventDefault()
@@ -95,14 +129,45 @@ function createGroups(data: Sync, local: Local): void {
                     const iconWrapper = document.createElement('span')
                     const img = document.createElement('img')
                     const label = document.createElement('span')
+                    const fallback = document.createElement('span')
 
-                    iconWrapper.classList.add('link-title-icon')
+                    iconWrapper.classList.add('link-title-icon', 'icon-loading')
                     iconWrapper.dataset.linkId = link._id
                     img.alt = link.title ?? ''
                     img.title = link.title || link.url
                     img.draggable = false
                     img.loading = 'lazy'
+                    img.tabIndex = 0
+
+                    img.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            globalThis.open(link.url, data.linknewtab ? '_blank' : '_self')
+                        }
+                    })
+
+                    const markLoaded = (): void => {
+                        iconWrapper.classList.remove('icon-loading')
+                    }
+                    const markFailed = (): void => {
+                        iconWrapper.classList.remove('icon-loading')
+                        iconWrapper.classList.add('icon-fallback')
+                        fallback.textContent = (link.title || link.url).trim()[0]?.toUpperCase() ?? '?'
+                    }
+
+                    img.addEventListener('load', markLoaded)
+                    img.addEventListener('error', markFailed)
+
                     img.src = url.startsWith('link') ? (local[`x-icon-${url}`] ?? '') : url
+
+                    // covers the case where src resolves (cache, data URI)
+                    // before the listeners above got a chance to attach
+                    if (img.complete) {
+                        img.naturalWidth > 0 ? markLoaded() : markFailed()
+                    }
+
+                    fallback.classList.add('link-title-icon-fallback')
+
                     img.addEventListener('pointerdown', (event) => {
                         event.stopPropagation()
 
@@ -120,7 +185,7 @@ function createGroups(data: Sync, local: Local): void {
                     label.classList.add('link-title-icon-name')
                     label.textContent = link.title || link.url
 
-                    iconWrapper.append(img, label)
+                    iconWrapper.append(img, fallback, label)
                     iconsWrapper.appendChild(iconWrapper)
                 }
             }

@@ -4,6 +4,41 @@ import { tradThis } from '../../utils/translations.ts'
 
 import type { Sync } from '../../../types/sync.ts'
 
+// Same "click again to confirm" idiom as the layout reset button
+// (features/move/toolbox.ts resetButton), reused here instead of the
+// native window.confirm(), which looks out of place next to the rest
+// of this themed UI.
+export function armConfirm(button: HTMLButtonElement, armedHTML: string, action: () => void, ms = 2000): void {
+    let idleHTML = button.innerHTML
+    let timeout: ReturnType<typeof setTimeout>
+
+    button.addEventListener('click', (event) => {
+        event.stopPropagation()
+
+        if (button.dataset.armed === 'true') {
+            clearTimeout(timeout)
+            button.dataset.armed = ''
+            button.innerHTML = idleHTML
+            action()
+            return
+        }
+
+        idleHTML = button.innerHTML
+        button.dataset.armed = 'true'
+        button.innerHTML = armedHTML
+        button.classList.add('confirm-armed')
+
+        timeout = setTimeout(() => {
+            button.dataset.armed = ''
+            button.classList.remove('confirm-armed')
+            button.innerHTML = idleHTML
+        }, ms)
+    })
+}
+
+const CONFIRM_ICON =
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" width="1em" height="1em"><path d="M3 8.5 6.5 12 13 4"/></svg>'
+
 export const LOCK_ICON =
     '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" width="1em" height="1em"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>'
 
@@ -61,7 +96,7 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
     const shapeBtn = button.querySelector<HTMLElement>('.group-shape')
     const transparentBtn = button.querySelector<HTMLElement>('.group-transparent')
     const renameBtn = button.querySelector<HTMLElement>('.group-rename')
-    const deleteBtn = button.querySelector<HTMLElement>('.group-delete')
+    const deleteBtn = button.querySelector<HTMLButtonElement>('.group-delete')
 
     handle?.addEventListener('pointerdown', (event) => {
         event.stopPropagation()
@@ -98,13 +133,10 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
         startGroupRename(button, group)
     })
 
-    deleteBtn?.addEventListener('click', (event) => {
-        event.stopPropagation()
-
-        if (globalThis.confirm(tradThis('Delete this group and all its links?'))) {
-            linksUpdate({ deleteGroup: group })
-        }
-    })
+    if (deleteBtn) {
+        deleteBtn.title = tradThis('Click again to confirm')
+        armConfirm(deleteBtn, CONFIRM_ICON, () => linksUpdate({ deleteGroup: group }))
+    }
 }
 
 function startGroupRename(button: HTMLButtonElement, group: string): void {

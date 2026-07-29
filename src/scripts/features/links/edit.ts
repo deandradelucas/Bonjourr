@@ -44,6 +44,7 @@ let inputToFocus: HTMLInputElement
 let buttonToSubmit: HTMLButtonElement
 
 let editStates: EditStates
+let favoriteDeleteArmed = false
 
 //
 // Display
@@ -185,6 +186,32 @@ export async function populateDialogWithEditLink(
     inputToFocus?.focus()
 }
 
+// same "click again to confirm" idiom as the layout reset button
+// (features/move/toolbox.ts resetButton), used instead of window.confirm()
+function armDeleteFaviconButton(button: HTMLButtonElement): boolean {
+    const label = button.querySelector('span')
+
+    if (favoriteDeleteArmed) {
+        favoriteDeleteArmed = false
+        return true
+    }
+
+    favoriteDeleteArmed = true
+
+    if (label) {
+        label.textContent = tradThis('Are you sure?')
+    }
+
+    setTimeout(() => {
+        favoriteDeleteArmed = false
+        if (label) {
+            label.textContent = tradThis('Delete link')
+        }
+    }, 2000)
+
+    return false
+}
+
 function toggleEditInputs(): string[] {
     const deleteButtonTxt = document.querySelector<HTMLButtonElement>('#edit-delete span')
     const addButtonTxt = document.querySelector<HTMLButtonElement>('#edit-add span')
@@ -193,6 +220,7 @@ function toggleEditInputs(): string[] {
 
     inputToFocus = domtitle
     setSubmitOnEnter('edit-apply')
+    favoriteDeleteArmed = false
 
     document.querySelector('#edit-delete')?.removeAttribute('disabled')
     document.querySelector('#edit-pin')?.removeAttribute('disabled')
@@ -363,9 +391,11 @@ function submitChanges(event: SubmitEvent): void {
     }
 
     if (change === 'edit-delete') {
+        const deleteBtn = event.submitter as HTMLButtonElement
+
         if (target.title && !target.favicon) {
             quickLinks(undefined, { deleteGroup: group })
-        } else if (!target.favicon || globalThis.confirm(tradThis('Remove this favorite?'))) {
+        } else if (!target.favicon || armDeleteFaviconButton(deleteBtn)) {
             quickLinks(undefined, { deleteLinks: selected })
         } else {
             event.preventDefault()
