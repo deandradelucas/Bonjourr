@@ -1,24 +1,36 @@
-import { getLinksInGroup } from './helpers.ts'
+import { getIconFromLinkElem } from './index.ts'
+import { getLinksInGroup, isElem } from './helpers.ts'
 import { openContextMenu } from '../contextmenu.ts'
 import { initblocks } from './index.ts'
 import { startDrag } from './drag.ts'
+import { applyGroupPosition, initGroupPositionEvents } from './position.ts'
 
 import { transitioner } from '../../utils/transitioner.ts'
 import { tradThis } from '../../utils/translations.ts'
 import { storage } from '../../storage.ts'
 
-import type { LinkGroups, Sync } from '../../../types/sync.ts'
+import type { Sync } from '../../../types/sync.ts'
+import type { Local } from '../../../types/local.ts'
 
 const domlinkblocks = document.getElementById('linkblocks') as HTMLDivElement
+let positionEventsInitialized = false
 
-export function initGroups(data: Sync, init?: true): void {
+export async function initGroups(data: Sync, init?: true): Promise<void> {
+    const local = await storage.local.get()
+
     if (!init) {
         for (const node of document.querySelectorAll('#link-mini button') ?? []) {
             node.remove()
         }
     }
 
-    createGroups(data.linkgroups)
+    createGroups(data, local)
+    applyGroupPosition(data)
+
+    if (!positionEventsInitialized) {
+        positionEventsInitialized = true
+        initGroupPositionEvents()
+    }
 
     // navigating through groups with scroll wheel
     document.querySelector('#link-mini')?.addEventListener('wheel', (event) => {
@@ -27,11 +39,13 @@ export function initGroups(data: Sync, init?: true): void {
     }, { passive: false })
 }
 
-function createGroups(linkgroups: LinkGroups): void {
-    const { groups, pinned, synced, selected } = linkgroups
+function createGroups(data: Sync, local: Local): void {
+    const { groups, pinned, synced, selected } = data.linkgroups
 
     for (const group of [...groups, '+']) {
         const button = document.createElement('button')
+        const iconsWrapper = document.createElement('span')
+        const textSpan = document.createElement('span')
         const isTopSite = group === 'topsites'
         const isDefault = group === 'default'
         const isAddMore = group === '+'
@@ -40,19 +54,22 @@ function createGroups(linkgroups: LinkGroups): void {
             continue
         }
 
-        button.textContent = group
+        iconsWrapper.classList.add('link-title-icons')
+        textSpan.classList.add('link-title-text')
+        textSpan.textContent = group
+
         button.dataset.group = group
         button.classList.add('link-title')
         button.classList.toggle('selected-group', group === selected)
         button.classList.toggle('synced', synced.includes(group))
 
         if (isTopSite) {
-            button.textContent = tradThis('Most visited')
+            textSpan.textContent = tradThis('Most visited')
             button.classList.add('topsites-title')
         }
 
         if (isDefault) {
-            button.textContent = tradThis('Default group')
+            textSpan.textContent = tradThis('Default group')
         }
 
         if (isAddMore) {
@@ -61,12 +78,27 @@ function createGroups(linkgroups: LinkGroups): void {
         } else {
             button.addEventListener('click', changeGroup)
             button.addEventListener('pointerdown', startDrag)
+
+            for (const link of getLinksInGroup(data, group)) {
+                if (isElem(link)) {
+                    const url = getIconFromLinkElem(link)
+                    const img = document.createElement('img')
+                    img.alt = ''
+                    img.draggable = false
+                    img.loading = 'lazy'
+                    img.src = url.startsWith('link') ? (local[`x-icon-${url}`] ?? '') : url
+                    iconsWrapper.appendChild(img)
+                }
+            }
         }
+
+        button.appendChild(iconsWrapper)
+        button.appendChild(textSpan)
 
         document.querySelector('#link-mini div')?.appendChild(button)
     }
 
-    domlinkblocks?.classList.toggle('with-groups', linkgroups.on)
+    domlinkblocks?.classList.toggle('with-groups', data.linkgroups.on)
 }
 
 function changeGroup(event: Event): void {

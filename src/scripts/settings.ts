@@ -121,7 +121,6 @@ function settingsInitEvent(event: Event): void {
     initSupportersSettingsNotif(sync)
     initOptionsValues(sync, local)
     initOptionsEvents()
-    settingsFooter()
 
     // 3. Can be deferred
 
@@ -1265,7 +1264,6 @@ async function switchLangs(nextLang: Langs): Promise<void> {
     tabTitle(data.tabtitle)
     notes(data.notes)
     customFont(undefined, { lang: true })
-    settingsFooter()
     translatePlaceholders()
     translateAriaLabels()
     supportersNotifications(undefined, { translate: true })
@@ -1277,25 +1275,6 @@ function showall(val: boolean, event: boolean): void {
 
     if (event) {
         storage.sync.set({ showall: val })
-    }
-}
-
-function settingsFooter(): void {
-    const one = document.querySelector<HTMLAnchorElement>('#signature-one')
-    const two = document.querySelector<HTMLAnchorElement>('#signature-two')
-    const version = document.getElementById('version') as HTMLLinkElement
-    const rand = Math.random() > 0.5
-
-    if (one && two) {
-        one.href = rand ? 'https://victr.me/' : 'https://tahoe.be/'
-        two.href = rand ? 'https://tahoe.be/' : 'https://victr.me/'
-        one.textContent = rand ? 'Victor Azevedo' : 'Tahoe Beetschen'
-        two.textContent = rand ? 'Tahoe Beetschen' : 'Victor Azevedo'
-    }
-
-    if (version) {
-        version.textContent = SYNC_DEFAULT.about.version
-        version.href = `https://github.com/victrme/Bonjourr/releases/${SYNC_DEFAULT.about.version}`
     }
 }
 

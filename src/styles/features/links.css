@@ -122,6 +122,8 @@
 
 .link-title {
     display: none;
+    align-items: center;
+    gap: 0.4em;
     max-width: 26ch;
     padding: 0.2em 1em;
     overflow: hidden;
@@ -138,13 +140,57 @@
     transition: transform 0.2s var(--in-out-bounce);
 }
 
+.link-title-icons {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    flex-shrink: 0;
+}
+
+.link-title-icons:empty {
+    display: none;
+}
+
+.link-title-icons img {
+    width: var(--icon-size);
+    height: var(--icon-size);
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #fff2;
+    box-shadow: 0 0 0 1px #fff2;
+}
+
+/* Icons layout: grid — fixed columns instead of free wrap */
+#link-mini.icons-grid .link-title-icons {
+    display: grid;
+    grid-template-columns: repeat(4, var(--icon-size));
+    justify-content: center;
+}
+
+/* Icons layout: stack — overlapping circles, like avatar stacks */
+#link-mini.icons-stack .link-title-icons img {
+    margin-left: calc(var(--icon-size) * -0.4);
+}
+
+#link-mini.icons-stack .link-title-icons img:first-child {
+    margin-left: 0;
+}
+
+.link-title-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
 .link-group .link-title {
     max-width: 100%;
 }
 
 .with-groups .link-group.pinned .link-title,
 .link-group.in-folder .link-title {
-    display: initial;
+    display: inline-flex;
 }
 
 .link-title:hover {
@@ -198,7 +244,8 @@
     /* will-change: transform; */
 }
 
-.link .link-icon, .link .link-index {
+.link .link-icon,
+.link .link-index {
     margin: auto;
     flex-shrink: 0;
     width: var(--icon-size);
@@ -252,7 +299,8 @@
     top: 3.5em;
 }
 
-.titles.small.layout-text-left, .titles.small.layout-text-right {
+.titles.small.layout-text-left,
+.titles.small.layout-text-right {
     text-align: center;
 }
 
@@ -778,6 +826,57 @@
     padding-right: 4em;
 }
 
+#link-mini.free-position {
+    position: fixed;
+    left: var(--pos-x, 50%);
+    top: var(--pos-y, auto);
+    width: max-content;
+    max-width: 90vw;
+    padding-right: 0;
+    z-index: 20;
+}
+
+#link-mini.dragging-position {
+    transition: none;
+    cursor: grabbing;
+    user-select: none;
+}
+
+#link-mini-controls {
+    display: none;
+    gap: 0.4em;
+    justify-content: center;
+    margin-top: 0.4em;
+}
+
+.with-groups #link-mini:hover #link-mini-controls,
+.with-groups #link-mini.dragging-position #link-mini-controls {
+    display: flex;
+}
+
+.link-mini-handle {
+    width: 1.8em;
+    height: 1.8em;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background-color: #fff2;
+    color: var(--font-color);
+    cursor: pointer;
+    line-height: 1;
+    font-size: 0.9em;
+}
+
+#link-mini-drag {
+    cursor: grab;
+    touch-action: none;
+}
+
+#link-mini.position-locked #link-mini-drag {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
 #link-mini > div {
     position: relative;
     display: inline-flex;
@@ -790,7 +889,9 @@
 }
 
 #link-mini .link-title {
-    display: initial;
+    display: inline-flex;
+    max-width: none;
+    white-space: normal;
 }
 
 #link-mini .add-group {

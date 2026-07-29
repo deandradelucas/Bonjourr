@@ -901,7 +901,7 @@ function correctLinksOrder(data: Sync): Sync {
     return data
 }
 
-function getIconFromLinkElem(link: LinkElem): string {
+export function getIconFromLinkElem(link: LinkElem): string {
     if (!link.icon?.value) {
         try {
             const { origin, pathname } = new URL(link.url)

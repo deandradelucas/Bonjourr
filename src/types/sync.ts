@@ -61,6 +61,9 @@ export interface LinkGroups {
     groups: string[]
     pinned: string[]
     synced: string[]
+    position?: { x: number; y: number }
+    positionLocked?: boolean
+    iconsLayout?: 'row' | 'grid' | 'stack'
 }
 
 export interface Hide {
