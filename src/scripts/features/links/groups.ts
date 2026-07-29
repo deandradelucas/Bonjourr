@@ -14,6 +14,11 @@ import type { Local } from '../../../types/local.ts'
 
 const domlinkblocks = document.getElementById('linkblocks') as HTMLDivElement
 
+function onLinkMiniWheel(event: Event): void {
+    changeGroup(event)
+    event.preventDefault()
+}
+
 export async function initGroups(data: Sync, init?: true): Promise<void> {
     const local = await storage.local.get()
 
@@ -26,10 +31,9 @@ export async function initGroups(data: Sync, init?: true): Promise<void> {
     createGroups(data, local)
 
     // navigating through groups with scroll wheel
-    document.querySelector('#link-mini')?.addEventListener('wheel', (event) => {
-        changeGroup(event)
-        event.preventDefault()
-    }, { passive: false })
+    const linkMini = document.querySelector('#link-mini')
+    linkMini?.removeEventListener('wheel', onLinkMiniWheel)
+    linkMini?.addEventListener('wheel', onLinkMiniWheel, { passive: false })
 }
 
 function createGroups(data: Sync, local: Local): void {
@@ -92,12 +96,6 @@ function createGroups(data: Sync, local: Local): void {
                     })
                     img.addEventListener('click', (event) => {
                         event.stopPropagation()
-
-                        if (iconWrapper.classList.contains('was-dragged')) {
-                            iconWrapper.classList.remove('was-dragged')
-                            return
-                        }
-
                         globalThis.open(link.url, data.linknewtab ? '_blank' : '_self')
                     })
 
@@ -200,7 +198,7 @@ function createGroupControls(group: string): HTMLSpanElement {
     transparent.setAttribute('aria-label', tradThis('Toggle transparent favicon background'))
     transparent.innerHTML = TRANSPARENT_ICON
 
-    actions.append(drag, lock, dark, shape, transparent)
+    actions.append(lock, dark, shape, transparent)
 
     if (!RESERVED_GROUPS.has(group)) {
         const rename = document.createElement('button')
@@ -237,7 +235,7 @@ function createGroupControls(group: string): HTMLSpanElement {
         }
     }
 
-    wrapper.append(toggle, actions)
+    wrapper.append(drag, toggle, actions)
 
     return wrapper
 }
@@ -481,7 +479,7 @@ function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId
                 return
             }
             dragging = true
-            iconWrapper.classList.add('was-dragged', 'dragging-favorite')
+            iconWrapper.classList.add('dragging-favorite')
         }
 
         const sourceButton = iconWrapper.closest<HTMLButtonElement>('.link-title[data-group]')
@@ -520,8 +518,15 @@ function startFavoriteDrag(event: PointerEvent, iconWrapper: HTMLElement, linkId
             linksUpdate({ moveToGroup: { ids: [linkId], target } })
         }
 
-        if (!dragging) {
-            iconWrapper.classList.remove('was-dragged')
+        if (dragging) {
+            // suppress the click that follows this pointerup so a drag
+            // (successful or not) doesn't also open the link underneath
+            iconWrapper.addEventListener('click', suppressClick, { capture: true, once: true })
         }
+    }
+
+    function suppressClick(e: MouseEvent): void {
+        e.stopPropagation()
+        e.preventDefault()
     }
 }

@@ -162,6 +162,7 @@
     align-items: center;
     gap: 0.3em;
     max-width: 4.6em;
+    touch-action: none;
 }
 
 .link-title-icon img {

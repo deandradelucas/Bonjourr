@@ -119,8 +119,11 @@ function startGroupRename(button: HTMLButtonElement, group: string): void {
     textSpan.focus()
     document.execCommand('selectAll', false)
 
-    textSpan.addEventListener('pointerdown', (event) => event.stopPropagation())
-    textSpan.addEventListener('click', (event) => event.stopPropagation())
+    const controller = new AbortController()
+    const { signal } = controller
+
+    textSpan.addEventListener('pointerdown', (event) => event.stopPropagation(), { signal })
+    textSpan.addEventListener('click', (event) => event.stopPropagation(), { signal })
 
     textSpan.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -132,11 +135,12 @@ function startGroupRename(button: HTMLButtonElement, group: string): void {
             textSpan.textContent = group
             textSpan.blur()
         }
-    })
+    }, { signal })
 
-    textSpan.addEventListener('blur', commit, { once: true })
+    textSpan.addEventListener('blur', commit, { signal })
 
     function commit(): void {
+        controller.abort()
         textSpan.contentEditable = 'false'
 
         const newTitle = textSpan.textContent?.trim() ?? ''
