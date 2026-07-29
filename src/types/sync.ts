@@ -64,6 +64,7 @@ export interface LinkGroups {
     positions?: Record<string, { x: number; y: number }>
     locked?: string[]
     darkBubbles?: string[]
+    transparentBubbles?: string[]
     iconsLayouts?: Record<string, 'row' | 'grid'>
 }
 

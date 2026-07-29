@@ -116,6 +116,9 @@ const MOON_ICON =
 const GRID_ICON =
     '<svg viewBox="0 0 16 16" fill="currentColor" width="1em" height="1em"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>'
 
+const TRANSPARENT_ICON =
+    '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" width="1em" height="1em"><rect x="2" y="2" width="12" height="12" rx="2" stroke-dasharray="2.2 1.8"/></svg>'
+
 function createGroupControls(): HTMLSpanElement {
     const wrapper = document.createElement('span')
     wrapper.classList.add('group-controls')
@@ -148,7 +151,14 @@ function createGroupControls(): HTMLSpanElement {
     shape.setAttribute('aria-label', tradThis('Change group icons layout'))
     shape.innerHTML = GRID_ICON
 
-    wrapper.append(drag, lock, dark, shape)
+    const transparent = document.createElement('button')
+    transparent.type = 'button'
+    transparent.classList.add('group-transparent')
+    transparent.title = tradThis('Toggle transparent bubble')
+    transparent.setAttribute('aria-label', tradThis('Toggle transparent bubble background'))
+    transparent.innerHTML = TRANSPARENT_ICON
+
+    wrapper.append(drag, lock, dark, shape, transparent)
 
     return wrapper
 }

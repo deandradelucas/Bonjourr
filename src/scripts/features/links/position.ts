@@ -11,10 +11,11 @@ export const UNLOCK_ICON =
 // Per-group free positioning, lock, and dark bubble theme
 
 export function applyGroupAppearance(button: HTMLButtonElement, group: string, data: Sync): void {
-    const { positions, locked, darkBubbles, iconsLayouts } = data.linkgroups
+    const { positions, locked, darkBubbles, transparentBubbles, iconsLayouts } = data.linkgroups
     const pos = positions?.[group]
     const isLocked = !!locked?.includes(group)
     const isDark = !!darkBubbles?.includes(group)
+    const isTransparent = !!transparentBubbles?.includes(group)
     const isGrid = (iconsLayouts?.[group] ?? 'row') === 'grid'
 
     if (pos) {
@@ -29,11 +30,13 @@ export function applyGroupAppearance(button: HTMLButtonElement, group: string, d
 
     button.classList.toggle('position-locked', isLocked)
     button.classList.toggle('dark-bubble', isDark)
+    button.classList.toggle('transparent-bubble', isTransparent)
     button.classList.toggle('icons-grid', isGrid)
 
     const lockBtn = button.querySelector<HTMLElement>('.group-lock')
     const darkBtn = button.querySelector<HTMLElement>('.group-dark')
     const shapeBtn = button.querySelector<HTMLElement>('.group-shape')
+    const transparentBtn = button.querySelector<HTMLElement>('.group-transparent')
 
     if (lockBtn) {
         lockBtn.innerHTML = isLocked ? LOCK_ICON : UNLOCK_ICON
@@ -44,6 +47,9 @@ export function applyGroupAppearance(button: HTMLButtonElement, group: string, d
     if (shapeBtn) {
         shapeBtn.setAttribute('aria-pressed', String(isGrid))
     }
+    if (transparentBtn) {
+        transparentBtn.setAttribute('aria-pressed', String(isTransparent))
+    }
 }
 
 export function bindGroupControls(button: HTMLButtonElement, group: string): void {
@@ -51,6 +57,7 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
     const lockBtn = button.querySelector<HTMLElement>('.group-lock')
     const darkBtn = button.querySelector<HTMLElement>('.group-dark')
     const shapeBtn = button.querySelector<HTMLElement>('.group-shape')
+    const transparentBtn = button.querySelector<HTMLElement>('.group-transparent')
 
     handle?.addEventListener('pointerdown', (event) => {
         event.stopPropagation()
@@ -58,7 +65,7 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
     })
     handle?.addEventListener('click', (event) => event.stopPropagation())
 
-    for (const ctrl of [lockBtn, darkBtn, shapeBtn]) {
+    for (const ctrl of [lockBtn, darkBtn, shapeBtn, transparentBtn]) {
         ctrl?.addEventListener('pointerdown', (event) => event.stopPropagation())
     }
 
@@ -75,6 +82,11 @@ export function bindGroupControls(button: HTMLButtonElement, group: string): voi
     shapeBtn?.addEventListener('click', (event) => {
         event.stopPropagation()
         toggleGroupShape(group)
+    })
+
+    transparentBtn?.addEventListener('click', (event) => {
+        event.stopPropagation()
+        toggleGroupTransparent(group)
     })
 }
 
@@ -109,8 +121,28 @@ async function toggleGroupLock(group: string): Promise<void> {
 async function toggleGroupDark(group: string): Promise<void> {
     const data = await storage.sync.get()
     const darkBubbles = new Set(data.linkgroups.darkBubbles ?? [])
+    const transparentBubbles = new Set(data.linkgroups.transparentBubbles ?? [])
 
     darkBubbles.has(group) ? darkBubbles.delete(group) : darkBubbles.add(group)
+    transparentBubbles.delete(group)
+    data.linkgroups.darkBubbles = [...darkBubbles]
+    data.linkgroups.transparentBubbles = [...transparentBubbles]
+    storage.sync.set(data)
+
+    const button = findGroupButton(group)
+    if (button) {
+        applyGroupAppearance(button, group, data)
+    }
+}
+
+async function toggleGroupTransparent(group: string): Promise<void> {
+    const data = await storage.sync.get()
+    const transparentBubbles = new Set(data.linkgroups.transparentBubbles ?? [])
+    const darkBubbles = new Set(data.linkgroups.darkBubbles ?? [])
+
+    transparentBubbles.has(group) ? transparentBubbles.delete(group) : transparentBubbles.add(group)
+    darkBubbles.delete(group)
+    data.linkgroups.transparentBubbles = [...transparentBubbles]
     data.linkgroups.darkBubbles = [...darkBubbles]
     storage.sync.set(data)
 

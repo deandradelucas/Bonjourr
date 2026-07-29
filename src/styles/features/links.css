@@ -857,7 +857,8 @@
 .group-drag,
 .group-lock,
 .group-dark,
-.group-shape {
+.group-shape,
+.group-transparent {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -876,7 +877,8 @@
 .group-drag svg,
 .group-lock svg,
 .group-dark svg,
-.group-shape svg {
+.group-shape svg,
+.group-transparent svg {
     width: 1.1em;
     height: 1.1em;
     display: block;
@@ -885,7 +887,8 @@
 .group-drag:hover,
 .group-lock:hover,
 .group-dark:hover,
-.group-shape:hover {
+.group-shape:hover,
+.group-transparent:hover {
     background-color: rgb(255 255 255 / 0.3);
     transform: scale(1.1);
 }
@@ -912,6 +915,14 @@
     border-color: rgb(255 255 255 / 0.08);
     backdrop-filter: blur(2em) brightness(0.6);
     -webkit-backdrop-filter: blur(2em) brightness(0.6);
+}
+
+.link-title.transparent-bubble {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 #link-mini > div {
