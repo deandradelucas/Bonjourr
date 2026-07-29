@@ -6,7 +6,8 @@ dialog#contextmenu {
     width: 240px;
     padding: 6px;
     margin: 0;
-    z-index: 4;
+    /* above free-positioned group bubbles (links.css .free-position, z-index: 20) */
+    z-index: 30;
     transition: opacity 0.05s;
 }
 
