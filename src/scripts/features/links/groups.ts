@@ -654,6 +654,29 @@ function getBookmarkFromDrag(event: DragEvent): { url: string; title: string } {
     const url = dataTransfer?.getData('text/uri-list') || dataTransfer?.getData('text/plain') || ''
     const html = dataTransfer?.getData('text/html') ?? ''
     const titleMatch = html.match(/<a[^>]*>([^<]*)<\/a>/i)
+    const rawTitle = decodeHtmlEntities(titleMatch?.[1]?.trim() ?? '')
 
-    return { url, title: titleMatch?.[1]?.trim() ?? '' }
+    return { url, title: capitalizeFirst(rawTitle || hostnameFromUrl(url)) }
+}
+
+function decodeHtmlEntities(text: string): string {
+    if (!text.includes('&')) {
+        return text
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.innerHTML = text
+    return textarea.value
+}
+
+function hostnameFromUrl(url: string): string {
+    try {
+        return new URL(url).hostname.replace(/^www\./, '')
+    } catch {
+        return url
+    }
+}
+
+function capitalizeFirst(text: string): string {
+    return text.length > 0 ? text[0].toUpperCase() + text.slice(1) : text
 }
