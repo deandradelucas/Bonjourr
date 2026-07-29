@@ -213,6 +213,11 @@ function findGroupButton(group: string): HTMLButtonElement | null {
     return document.querySelector<HTMLButtonElement>(`.link-title[data-group="${CSS.escape(group)}"]`)
 }
 
+function getPositionContainerRect(): DOMRect {
+    const container = document.getElementById('interface')
+    return container?.getBoundingClientRect() ?? new DOMRect(0, 0, globalThis.innerWidth, globalThis.innerHeight)
+}
+
 function startGroupDrag(event: PointerEvent, button: HTMLButtonElement, group: string): void {
     if (button.classList.contains('position-locked')) {
         return
@@ -229,8 +234,14 @@ function startGroupDrag(event: PointerEvent, button: HTMLButtonElement, group: s
     document.addEventListener('pointerup', up)
 
     function move(e: PointerEvent): void {
-        const x = ((rect.left + (e.clientX - startX)) / globalThis.innerWidth) * 100
-        const y = ((rect.top + (e.clientY - startY)) / globalThis.innerHeight) * 100
+        // percentages relative to #interface (the bubble's positioned
+        // ancestor), not the viewport: the settings panel toggles a
+        // transform on #interface, which only moves elements whose
+        // coordinates are already relative to it. Using window size here
+        // would make the bubble jump the instant that transform appears.
+        const containerRect = getPositionContainerRect()
+        const x = ((rect.left + (e.clientX - startX) - containerRect.left) / containerRect.width) * 100
+        const y = ((rect.top + (e.clientY - startY) - containerRect.top) / containerRect.height) * 100
 
         button.classList.add('free-position')
         button.style.setProperty('--pos-x', `${x}%`)

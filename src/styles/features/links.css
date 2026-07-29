@@ -903,7 +903,10 @@
    set to a dark/mirrored theme via its own .group-controls (see position.ts) */
 
 .link-title.free-position {
-    position: fixed;
+    /* absolute (relative to #interface), not fixed: #interface gets a
+       transform when the settings panel opens, which would otherwise
+       make a fixed-position bubble jump to a new containing block */
+    position: absolute;
     left: var(--pos-x, auto);
     top: var(--pos-y, auto);
     z-index: 20;
@@ -1055,7 +1058,9 @@
 }
 
 #link-mini > div {
-    position: relative;
+    /* deliberately not positioned: a free-position bubble (position:
+       absolute) needs to walk up to #interface for its containing block,
+       not stop at this content-sized row */
     display: inline-flex;
     flex-wrap: wrap;
     justify-content: center;
