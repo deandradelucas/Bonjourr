@@ -93,6 +93,11 @@ function createGroups(data: Sync, local: Local): void {
                     img.src = url.startsWith('link') ? (local[`x-icon-${url}`] ?? '') : url
                     img.addEventListener('pointerdown', (event) => {
                         event.stopPropagation()
+
+                        if ((event as PointerEvent).button > 0) {
+                            return
+                        }
+
                         startFavoriteDrag(event as PointerEvent, iconWrapper, link._id)
                     })
                     img.addEventListener('click', (event) => {

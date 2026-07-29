@@ -1,6 +1,6 @@
 import { getLink, getSelectedIds, isLinkIconType } from './helpers.ts'
 import { closeContextMenu, positionContextMenu } from '../contextmenu.ts'
-import { togglePinGroup } from './groups.ts'
+import { initGroups, togglePinGroup } from './groups.ts'
 import { quickLinks } from './index.ts'
 
 import { getComposedPath } from '../../shared/dom.ts'
@@ -26,6 +26,7 @@ interface EditStates {
         title: boolean
         synced: boolean
         addgroup: boolean
+        favicon: boolean
     }
 }
 
@@ -60,6 +61,7 @@ export async function populateDialogWithEditLink(
     const linkelem = path.find((el) => el?.className?.includes('link') && el?.tagName === 'LI')
     const linkgroup = path.find((el) => el?.className?.includes('link-group'))
     const linktitle = path.find((el) => el?.className?.includes('link-title'))
+    const linkicon = path.find((el) => el?.classList?.contains('link-title-icon'))
 
     const container: EditStates['container'] = {
         mini: path.some((element) => element?.id?.includes('link-mini')),
@@ -73,6 +75,7 @@ export async function populateDialogWithEditLink(
         title: classNames.some((cl) => cl.includes('link-title')),
         synced: classNames.some((cl) => cl.includes('synced')),
         addgroup: classNames.some((cl) => cl.includes('add-group')),
+        favicon: !!linkicon,
     }
 
     const selectall = classNames.some((cl) => cl.includes('select-all'))
@@ -96,8 +99,9 @@ export async function populateDialogWithEditLink(
     const folderTitle = container.folder && target.title
     const noSelection = selectall && editStates.selected.length === 0
     const noInputs = inputs.length === 0
+    const brokenFavicon = target.favicon && !linkicon?.dataset.linkId
 
-    if (noInputs || folderTitle || noSelection || dragging) {
+    if (noInputs || folderTitle || noSelection || dragging || brokenFavicon) {
         closeContextMenu()
         return
     }
@@ -112,7 +116,7 @@ export async function populateDialogWithEditLink(
 
     const data = await storage.sync.get()
 
-    if (target.title) {
+    if (target.title && !target.favicon) {
         const { groups, pinned } = data.linkgroups
         const title = editStates.target.addgroup ? '' : editStates.group
 
@@ -130,10 +134,9 @@ export async function populateDialogWithEditLink(
         }
     }
 
-    if (target.folder || target.link) {
+    if (target.folder || target.link || target.favicon) {
         const pathLis = path.filter((el) => el.tagName === 'LI')
-        const li = pathLis[0]
-        const id = li?.id
+        const id = target.favicon ? (linkicon?.dataset.linkId ?? '') : pathLis[0]?.id
         const link = getLink(data, id)
 
         domtitle.value = link?.title ?? ''
@@ -162,7 +165,13 @@ export async function populateDialogWithEditLink(
         for (const node of document.querySelectorAll('.link-title.selected, .link.selected') ?? []) {
             node.classList.remove('selected')
         }
-        ;(target.title ? linktitle : linkelem)?.classList.add('selected')
+
+        if (target.favicon) {
+            const id = linkicon?.dataset.linkId ?? ''
+            document.getElementById(id)?.classList.add('selected')
+        } else {
+            ;(target.title ? linktitle : linkelem)?.classList.add('selected')
+        }
     }
 
     // Must be placed after "li?.classList.add('selected')"
@@ -193,7 +202,9 @@ function toggleEditInputs(): string[] {
     domtitle.value = ''
 
     if (container.mini) {
-        if (target.synced) {
+        if (target.favicon) {
+            inputs = ['title', 'url*', 'icon', 'icon-url*', 'delete', 'refresh', 'apply']
+        } else if (target.synced) {
             inputs = ['pin', 'delete']
         } else if (target.addgroup) {
             inputs = ['title*', 'add'] // * for required inputs
@@ -259,7 +270,7 @@ function toggleEditInputs(): string[] {
             deleteButtonTxt.textContent = tradThis('Delete selected')
         } else if (target.folder) {
             deleteButtonTxt.textContent = tradThis('Delete folder')
-        } else if (target.link) {
+        } else if (target.favicon || target.link) {
             deleteButtonTxt.textContent = tradThis('Delete link')
         } else if (target.title) {
             deleteButtonTxt.textContent = tradThis('Delete group')
@@ -352,7 +363,7 @@ function submitChanges(event: SubmitEvent): void {
     }
 
     if (change === 'edit-delete') {
-        if (target.title) {
+        if (target.title && !target.favicon) {
             quickLinks(undefined, { deleteGroup: group })
         } else {
             quickLinks(undefined, { deleteLinks: selected })
@@ -411,6 +422,13 @@ function submitChanges(event: SubmitEvent): void {
         togglePinGroup(group, 'unpin')
     }
 
+    if (target.favicon) {
+        // group bubbles read from #link-mini, which none of the update
+        // functions above refresh on their own; give their writes a tick
+        // to land in storage, then rebuild the bubble icons from it
+        setTimeout(() => storage.sync.get().then((data) => initGroups(data)), 100)
+    }
+
     event.preventDefault()
     setTimeout(closeContextMenu)
 }
@@ -426,7 +444,7 @@ function applyLinkChanges(_origin: 'inputs' | 'button'): void {
         return
     }
 
-    if (editStates.target.title) {
+    if (editStates.target.title && !editStates.target.favicon) {
         quickLinks(undefined, {
             groupTitle: {
                 old: domeditlink.dataset.group ?? '',
