@@ -108,7 +108,11 @@ function clickUserActions(event: MouseEvent): void {
         body: (path[0] as HTMLElement).tagName === 'BODY',
         link: path.some((el) => el.classList.contains('link')),
         linkfolder: path.some((el) => el.className.includes('folder')),
-        addgroup: path.some((el) => el.className.includes('add-group')),
+        // 'b_addgroup' is the settings button that proxies a click onto the
+        // bubble's own '+'. Without it here, the menu that '+' opens on
+        // pointerdown is closed again by the click of the very same gesture,
+        // because that click lands on the settings panel (outside the menu).
+        addgroup: path.some((el) => el.className.includes('add-group') || el.id === 'b_addgroup'),
         folder: path.some((el) => el.className.includes('in-folder')),
         button: path.some((el) => el.className.includes('param-btn')),
         localfiles: path.some((el) => el.id === 'local_options'),

@@ -169,9 +169,10 @@ function startGroupRename(button: HTMLButtonElement, group: string): void {
         }
     }, { signal })
 
-    textSpan.addEventListener('blur', commit, { signal })
-
-    function commit(): void {
+    // Arrow const, not a hoisted function declaration: the latter can be called
+    // before the null guard above runs, so it does not keep textSpan narrowed
+    // and `deno check` flags every use of it as possibly null.
+    const commit = (): void => {
         controller.abort()
         textSpan.contentEditable = 'false'
 
@@ -183,6 +184,8 @@ function startGroupRename(button: HTMLButtonElement, group: string): void {
             textSpan.textContent = group
         }
     }
+
+    textSpan.addEventListener('blur', commit, { signal })
 }
 
 async function toggleGroupShape(group: string): Promise<void> {

@@ -483,6 +483,28 @@ function initOptionsEvents(): void {
         quickLinks(undefined, { groups: target.checked })
     })
 
+    onclickdown(paramId('b_addgroup'), () => {
+        const addGroupButton = document.querySelector<HTMLButtonElement>('.link-title.add-group')
+
+        if (!addGroupButton) {
+            return
+        }
+
+        // A bare .click() has no coordinates, and the context menu positions
+        // itself from the event — it would open pinned to the top left corner.
+        // Aiming it at the bubble's own '+' keeps it where the user expects.
+        const { left, top, width, height } = addGroupButton.getBoundingClientRect()
+
+        addGroupButton.dispatchEvent(
+            new MouseEvent('click', {
+                bubbles: true,
+                cancelable: true,
+                clientX: left + width / 2,
+                clientY: top + height / 2,
+            }),
+        )
+    })
+
     onclickdown(paramId('i_linknewtab'), (_, target) => {
         quickLinks(undefined, { newtab: target.checked })
     })
